@@ -4,6 +4,7 @@
 #include  <iostream.h>
 #include <utility>
 #include <time.h>
+#include <vector>
 
 using namespace cv;
 
@@ -76,11 +77,13 @@ std::map<String, std::vector<cv::DMatch> > match(std::map<String, cv::Mat> descr
 
 	// Construction of the matcher
 	cv::BruteForceMatcher<cv::L2<float> > matcher;
+	//cv::FlannBasedMatcher flann;
 	// Match the two image descriptors
 	std::vector<cv::DMatch> matches;
 
 	std::map<String, cv::Mat>::iterator it;
 	for (it = descriptors.begin(); it != descriptors.end(); it++) {
+		//flann.match(reference, it->second, matches);
 		matcher.match(reference, it->second, matches);
 		all_matches.insert(std::pair<String, std::vector<cv::DMatch> >(it->first, matches));
 		matches.clear();
@@ -125,18 +128,29 @@ int main( int argc, char** argv ) {
 	// feature point detection
 
 	// Construct the SURF feature detector object
-	cv::SurfFeatureDetector surf(500.0); // threshold
-	/*cv::SiftFeatureDetector sift(
+
+	cv::SurfFeatureDetector surf(5000.0); // threshold
+	cv::SurfFeatureDetector surf2(2000.0);
+
+	/*
+	cv::SiftFeatureDetector sift(
 			0.03,
-			10.0);*/
+			1.5);
+
+	cv::SiftFeatureDetector sift2(
+				0.03,
+				2);
+
+	cv::FastFeatureDetector fast(50, false);
+	*/
 
 	time_t time_first, time_second;
 	time_first = time (NULL);
 
-	cv::Mat referenz = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120225_144106.jpg"); // open in b&w
-	cv::Mat image1 = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120225_144117.jpg");
-	cv::Mat image2 = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120225_144130.jpg");
-	cv::Mat image3 = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120225_144059.jpg");
+	cv::Mat referenz = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120225_144912.jpg"); // open in b&w
+	cv::Mat image1 = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120228_192758.jpg");
+	cv::Mat image2 = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120225_144912.jpg");
+	cv::Mat image3 = cv::imread("/Users/christian/Dropbox/Photos/SURF/IMG_20120225_144943.jpg");
 
 	time_second = time (NULL);
 	cout << "read images in: " << time_second - time_first << endl;
@@ -151,18 +165,37 @@ int main( int argc, char** argv ) {
 	pasgf.second = "";
 	images.insert(pasgf);*/
 
-	//sift.detect(image,keypoints);
 
 
 
-	surf.detect(image1,keypoints1);
-	surf.detect(image2,keypoints2);
-	surf.detect(image3,keypoints3);
+	surf2.detect(image1,keypoints1);
+	surf2.detect(image2,keypoints2);
+	surf2.detect(image3,keypoints3);
 	surf.detect(referenz,refKeypoints);
+
+/*
+	sift2.detect(image1,keypoints1);
+	sift2.detect(image2,keypoints2);
+	sift2.detect(image3,keypoints3);
+	sift.detect(referenz,refKeypoints);
+*/
+/*
+	fast.detect(image1,keypoints1);
+	fast.detect(image2,keypoints2);
+	fast.detect(image3,keypoints3);
+	fast.detect(referenz,refKeypoints);
+*/
+	float sizeKeypoints = static_cast<float>(refKeypoints.size());
+	cout << "size keypoints ref image: " << sizeKeypoints << endl;
+	cout << "size keypoints image1: " << keypoints1.size() << endl;
+	cout << "size keypoints image2: " << keypoints2.size() << endl;
+	cout << "size keypoints image3: " << keypoints3.size() << endl;
 
 	time_second = time (NULL);
 
-	cout << "calculated keypoints in: " << time_second - time_first << endl;
+	float uiTime = static_cast<float>(time_second - time_first);
+	cout << "calculated keypoints in: " << uiTime << endl;
+	cout << "time per keypoint: " << (uiTime) / sizeKeypoints << endl;
 
 	time_first = time (NULL);
 
@@ -187,15 +220,47 @@ int main( int argc, char** argv ) {
 	surfDesc.compute(image3, keypoints3, descriptors3);
 	surfDesc.compute(referenz, refKeypoints, refDescriptors);
 
+
+	//int clo = clock();
+
+	//cout << "time to create descriptors3 from keypoints: " << clock() - clo << endl;
+
+	/*
+	FileStorage fs("myFile.yml", FileStorage::WRITE);
+	fs << "descriptors" << descriptors3;
+	fs.release();
+
+	cv::Mat descriptors4;
+
+	clo = clock();
+	FileStorage fsRead("myFile.yml", FileStorage::READ);
+	fsRead["descriptors"] >> descriptors4;
+	fsRead.release();
+	cout << "time to read yml with descriptors3: " << clock() - clo << endl;
+*/
+
+
+	/*
+	float sizeDescriptors = static_cast<float>(*refDescriptors.size);
+	cout << "size descriptors ref image: " << *refDescriptors.size << endl;
+
 	time_second = time (NULL);
-	cout << "calculated descriptors in: " << time_second - time_first << endl;
+
+	uiTime = static_cast<float>(time_second - time_first);
+	cout << "calculated descriptors in: " << uiTime << endl;
+	*/
+	//cout << "time per descriptor: " << (uiTime) / sizeDescriptorsy << endl;
+
+	//vector<String> v;
+	//String s[v.size()];
+
 	time_first = time (NULL);
 
 	// 2. Map mit allen Discriptoren berechnen
 	std::map<String, cv::Mat> descriptors;
-	descriptors.insert(std::pair<String, cv::Mat>("appeal_to_reason", descriptors1));
-	descriptors.insert(std::pair<String, cv::Mat>("Am_Ende_der_Sonne", descriptors2));
-	descriptors.insert(std::pair<String, cv::Mat>("kathedrale", descriptors3));
+	descriptors.insert(std::pair<String, cv::Mat>("image1", descriptors1));
+	descriptors.insert(std::pair<String, cv::Mat>("image2", descriptors2));
+	descriptors.insert(std::pair<String, cv::Mat>("image3", descriptors3));
 
 	// 3. Map mit allen Matches berechnen
 	std::map<String, std::vector<cv::DMatch> > all_matches = match(descriptors, refDescriptors);
@@ -242,19 +307,19 @@ int main( int argc, char** argv ) {
 
 
 
-*/
-	std::nth_element(all_matches.find("appeal_to_reason")->second.begin(),	// initial position
-			all_matches.find("appeal_to_reason")->second.begin()+49,			// position of the sorted element
-			all_matches.find("appeal_to_reason")->second.end());				// end position
+*//*
+	std::nth_element(all_matches.find("kathedrale")->second.begin(),	// initial position
+		all_matches.find("kathedrale")->second.begin()+24,			// position of the sorted element
+		all_matches.find("kathedrale")->second.end());				// end position
 
 	// remove all elements after the 25th
-	all_matches.find("appeal_to_reason")->second.erase(all_matches.find("appeal_to_reason")->second.begin()+50, all_matches.find("appeal_to_reason")->second.end());
+	all_matches.find("kathedrale")->second.erase(all_matches.find("kathedrale")->second.begin()+25, all_matches.find("kathedrale")->second.end());
 
 	cv::Mat imageMatches;
 	cv::drawMatches(
 			referenz,refKeypoints, 	// 1st image and its keypoints
-			image1,keypoints1,		// 2nd image and its keypoints
-			all_matches.find("appeal_to_reason")->second,
+			image3,keypoints3,		// 2nd image and its keypoints
+			all_matches.find("kathedrale")->second,
 			imageMatches,
 			cv::Scalar(255,255,255));	// color of the lines
 
@@ -262,7 +327,7 @@ int main( int argc, char** argv ) {
 	cv::imshow("Color Reduces Image", imageMatches);
 
 
-	cv::waitKey(0);
+	cv::waitKey(0);*/
 
   return 0;
 }
