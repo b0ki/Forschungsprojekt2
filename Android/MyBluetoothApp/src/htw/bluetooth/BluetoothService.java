@@ -75,9 +75,9 @@ public class BluetoothService extends Service implements Runnable {
 	    // separate thread because the service normally runs in the process's
 	    // main thread, which we don't want to block.  We also make it
 	    // background priority so CPU-intensive work will not disrupt our UI.
-	    HandlerThread thread = new HandlerThread("ServiceStartArguments",
-	            Process.THREAD_PRIORITY_BACKGROUND);
-	    thread.start();
+	    //HandlerThread thread = new HandlerThread("ServiceStartArguments",
+	    //        Process.THREAD_PRIORITY_BACKGROUND);
+	    //thread.start();
 	    
 	    // Get the HandlerThread's Looper and use it for our Handler 
 	    //mServiceLooper = thread.getLooper();

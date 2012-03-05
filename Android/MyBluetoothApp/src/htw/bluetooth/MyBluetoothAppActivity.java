@@ -1,8 +1,9 @@
 package htw.bluetooth;
 
+import htw.bluetooth.BluetoothService.LocalBinder;
+
 import java.util.List;
 
-import htw.bluetooth.BluetoothService.LocalBinder;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -13,9 +14,9 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
+import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.CompoundButton;
+import android.widget.ToggleButton;
 
 public class MyBluetoothAppActivity extends Activity implements BluetoothInterface {
 	
@@ -24,17 +25,45 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
 	private int REQUEST_ENABLE_BT = 0;
 	
 	private BluetoothService mService;
-
-
 	private BluetoothAdapter mBluetoothAdapter;
+
+	private ToggleButton mBluetoothToggle;
+	
+	private boolean isServiceBound = false;
 	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-
-        // The BluetoothAdapter is required for any and all Bluetooth activity
+        
+        mBluetoothToggle = (ToggleButton) findViewById(R.id.toggle_bluetooth);
+        mBluetoothToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				if (mBluetoothToggle.isChecked()) {
+					Intent service = new Intent(MyBluetoothAppActivity.this, BluetoothService.class);
+	        		bindService(service, mConnection, Context.BIND_AUTO_CREATE); 
+	        		isServiceBound = true;
+				} else {
+					mService.unregisterCallback(MyBluetoothAppActivity.this);
+			    	unbindService(mConnection);
+			    	isServiceBound = false;
+				}
+				
+			}
+		});
+        
+        
+        setupBluetooth(); 
+    }
+    
+    /**
+     * Setup the Bluetooth Access
+     */
+    private void setupBluetooth() {
+    	// The BluetoothAdapter is required for any and all Bluetooth activity
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         //  If getDefaultAdapter() returns null, then the device does not support Bluetooth
         if (mBluetoothAdapter == null) {
@@ -47,17 +76,21 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         } else {
-        	Intent service = new Intent(MyBluetoothAppActivity.this, BluetoothService.class);
-	        bindService(service, mConnection, Context.BIND_AUTO_CREATE);
+        	if (mBluetoothToggle.isChecked()) {
+        		Intent service = new Intent(MyBluetoothAppActivity.this, BluetoothService.class);
+        		bindService(service, mConnection, Context.BIND_AUTO_CREATE);        
+        		isServiceBound = true;
+        	}
         }
     }
     
     @Override
     protected void onDestroy() {
+    	if (isServiceBound) {
+    		mService.unregisterCallback(this);
+    		unbindService(mConnection);    		
+    	}
     	super.onDestroy();
-    	unbindService(mConnection);
-    	mService.unregisterCallback(this);
-    	//unregisterReceiver(mReceiver);
     }
     
     @Override
@@ -68,8 +101,12 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
     	if (resultCode == RESULT_OK) {
     		Log.d(LOG_TAG, "RESULT_OK, result code: ");
     		
-    		Intent service = new Intent(MyBluetoothAppActivity.this, BluetoothService.class);
-        	bindService(service, mConnection, Context.BIND_AUTO_CREATE); 
+    		if (mBluetoothToggle.isChecked()) {
+    			// bind to service when Bluetooth has been activated
+    			Intent service = new Intent(MyBluetoothAppActivity.this, BluetoothService.class);
+    			bindService(service, mConnection, Context.BIND_AUTO_CREATE);
+    			isServiceBound = true;
+    		}
     	}
     	
     	if (resultCode == RESULT_CANCELED) {
@@ -100,7 +137,7 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
 
 	@Override
 	public void onScannedBluetoothDevices(List<BluetoothDevice> devices) {
-		Log.d(LOG_TAG, "Aktualisiert Liste Bluetooth Geräte.");
+		Log.d(LOG_TAG, devices.size() + " gefunden(e) Bluetooth Geräte");
 		for (BluetoothDevice device : devices) {
     		Log.d(LOG_TAG, "Address: "+ device.getAddress()+ " Name: " + device.getName());
     	}
