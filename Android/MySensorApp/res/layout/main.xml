@@ -5,8 +5,15 @@
     android:orientation="vertical" >
 
     <TextView
+        android:id="@+id/text_rotation_matrix"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:text="@string/hello" />
+        android:text="" />
+    
+    <TextView
+        android:id="@+id/text_rotation_vector"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="" />
 
 </LinearLayout>
