@@ -2,6 +2,7 @@ package htw.wifi;
 
 import htw.wifi.WiFiService.LocalBinder;
 
+import java.util.Collections;
 import java.util.List;
 
 import android.app.Activity;
@@ -13,10 +14,9 @@ import android.net.wifi.ScanResult;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
 public class MyWifiManagerAppActivity extends Activity implements WiFiInterface {
@@ -50,6 +50,8 @@ public class MyWifiManagerAppActivity extends Activity implements WiFiInterface 
             Log.d(LOG_TAG, "disconnect from service");
         }
     };
+
+	private TextView mTextWifiResults;
     
     /** Called when the activity is first created. */
     @Override
@@ -74,6 +76,8 @@ public class MyWifiManagerAppActivity extends Activity implements WiFiInterface 
 				}
 			}
 		});
+        
+        mTextWifiResults = (TextView) findViewById(R.id.text_wifi_scan_results);
  
     }
     
@@ -90,9 +94,14 @@ public class MyWifiManagerAppActivity extends Activity implements WiFiInterface 
 
 	@Override
 	public void onScannedWifi(List<ScanResult> results) {
+		Collections.sort(results, new WiFiComparator());
+		
+		StringBuffer buf = new StringBuffer();
 		for (ScanResult result : results) {
 			Log.d(LOG_TAG, "BSSID: " + result.BSSID + " |ÊSignal-Strength: "+ result.level + " |ÊSSID: " + result.SSID);
-		}
+			buf.append(result.SSID + "Ê|Ê" + result.BSSID + " |Ê" + result.level + "\n");
+		}	
 		
+		mTextWifiResults.setText(buf.toString());
 	}
 }

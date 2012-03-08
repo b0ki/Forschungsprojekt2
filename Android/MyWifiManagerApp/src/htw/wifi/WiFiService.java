@@ -36,6 +36,12 @@ public class WiFiService extends Service implements Runnable {
 			Log.d(LOG_TAG, "Wlan Networks found: ");
 			
 			notifyCallbacks();
+			
+			// -1 means no connection
+			if (wifi.getConnectionInfo().getNetworkId() != -1) {
+				Thread t = new Thread(WiFiService.this);
+				t.start();
+			}
 		}
 	};
 
@@ -53,7 +59,15 @@ public class WiFiService extends Service implements Runnable {
      		wifi.setWifiEnabled(true);
      	}
      	
+     	
      	registerReceiver(receiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+     	// Starte Scann
+     	// TODO Kann es sein das wenn das Smartphone mit keinem Wlan Acces Point verbunden ist das Gerät permanent sucht?
+     	
+     	// -1 means no connection
+     	if (wifi.getConnectionInfo().getNetworkId() != -1) {
+     		wifi.startScan();
+     	}
      	
      	mCallbacks = new ArrayList<WiFiInterface>();
 	}
@@ -98,7 +112,7 @@ public class WiFiService extends Service implements Runnable {
 		}
 		
 		mWiFiNetworks.clear();
-		//wifi.startScan();
+		wifi.startScan();
 		//mBluetoothAdapter.startDiscovery();
 		
 	}
