@@ -2,11 +2,11 @@ package htw.bluetooth;
 
 import htw.bluetooth.BluetoothService.LocalBinder;
 
+import java.util.Collections;
 import java.util.List;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -14,8 +14,9 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
 public class MyBluetoothAppActivity extends Activity implements BluetoothInterface {
@@ -30,6 +31,8 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
 	private ToggleButton mBluetoothToggle;
 	
 	private boolean isServiceBound = false;
+
+	private TextView mBluetoothQuerries;
 	
     /** Called when the activity is first created. */
     @Override
@@ -55,7 +58,7 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
 			}
 		});
         
-        
+        mBluetoothQuerries = (TextView) findViewById(R.id.text_querry);
         setupBluetooth(); 
     }
     
@@ -126,7 +129,7 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
             LocalBinder binder = (LocalBinder) service;
             mService = binder.getService();
             mService.registerCallback(MyBluetoothAppActivity.this);
-            mService.setSleepInterval(10000);
+            mService.setSleepInterval(1000);
         }
 
         @Override
@@ -136,11 +139,23 @@ public class MyBluetoothAppActivity extends Activity implements BluetoothInterfa
     };
 
 	@Override
-	public void onScannedBluetoothDevices(List<BluetoothDevice> devices) {
+	public void onScannedBluetoothDevices(List<RemoteBluetoothDevice> devices) {
 		Log.d(LOG_TAG, devices.size() + " gefunden(e) Bluetooth Geräte");
-		for (BluetoothDevice device : devices) {
-    		Log.d(LOG_TAG, "Address: "+ device.getAddress()+ " Name: " + device.getName());
+		
+		Log.d(LOG_TAG, "sortiere liste");
+		// sortiere Liste
+		Collections.sort(devices);
+		
+		StringBuffer buf = new StringBuffer();
+		for (RemoteBluetoothDevice device : devices) {
+    		Log.d(LOG_TAG, "Address: "+ device.getAddress() + " | RSSI: " + device.getRSSI() + " | Name: " + device.getName());
+    		//if (device.getAddress().equalsIgnoreCase("44:2A:60:DA:61:44")) {
+    			buf.append(device.getName() + " | " + device.getAddress() + " | " + device.getRSSI()+ "\n");    			
+    		//}
     	}
 		
+		
+		
+		mBluetoothQuerries.setText(buf.toString());
 	}
 }

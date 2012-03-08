@@ -10,9 +10,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Binder;
-import android.os.HandlerThread;
+import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Process;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -29,7 +28,7 @@ public class BluetoothService extends Service implements Runnable {
 	private BluetoothAdapter mBluetoothAdapter;
 	
 	// Contain the found Bluetooth devices
-	private ArrayList<BluetoothDevice> mFoundBluetoothDevices;
+	private ArrayList<RemoteBluetoothDevice> mFoundBluetoothDevices;
 	
 	// Contain all Callbacks
 	private ArrayList<BluetoothInterface> mCallbacks;
@@ -46,8 +45,15 @@ public class BluetoothService extends Service implements Runnable {
 	        	
 	            // Get the BluetoothDevice object from the Intent
 	            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+	            
+	            // Get the signal strength
+	            short rssi = intent.getExtras().getShort(BluetoothDevice.EXTRA_RSSI);
+	            
 	            // Add the name and address to an array adapter to show in a ListView
-	            mFoundBluetoothDevices.add(device);
+	            RemoteBluetoothDevice newDevice = new RemoteBluetoothDevice(device.getName(), device.getAddress(), rssi);
+	            if (!mFoundBluetoothDevices.contains(newDevice)) {
+	            	mFoundBluetoothDevices.add(newDevice);	            	
+	            }
 	        }
 	        
 	        if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
@@ -84,7 +90,7 @@ public class BluetoothService extends Service implements Runnable {
 	    //mServiceHandler = new ServiceHandler(mServiceLooper);
 	    
 	    mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-	    mFoundBluetoothDevices = new ArrayList<BluetoothDevice>();
+	    mFoundBluetoothDevices = new ArrayList<RemoteBluetoothDevice>();
 	    
 	    // Register the BroadcastReceiver
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
@@ -126,7 +132,7 @@ public class BluetoothService extends Service implements Runnable {
 	   * @param interval
 	   */
 	  public void setSleepInterval(int interval) {
-		  if (interval > 1000) {
+		  if (interval >= 1000) {
 			  mSleepInterval = interval;			  
 		  }
 	  }
