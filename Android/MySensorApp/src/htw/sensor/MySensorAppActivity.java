@@ -35,6 +35,12 @@ public class MySensorAppActivity extends Activity implements SensorEventListener
 
 	private float[] mRotation;
 
+	private Matrix mRotationMatrix;
+
+	private TextView mTextBetrag;
+
+	private float[] mLinearAccelerationValues;
+
 	/** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -51,6 +57,8 @@ public class MySensorAppActivity extends Activity implements SensorEventListener
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         
         mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        
+        mLinearAcceleration = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         
         
         /*
@@ -80,33 +88,48 @@ public class MySensorAppActivity extends Activity implements SensorEventListener
         
         mTextRotationMatrix = (TextView) findViewById(R.id.text_rotation_matrix);
         mTextRotationVector = (TextView) findViewById(R.id.text_rotation_vector);
+        mTextBetrag = (TextView) findViewById(R.id.text_betrag);
         
         /*float value = 0.924f;
         float rounded = Math.round(value*100)/100f;
         mLightInfo.setText("gerundet: "+roundNDigitsAfterComma(value, 0));
         //mLightInfo.setText("gerundet: "+round1DigitAfterComma(value));*/
         Matrix m = new Matrix();
+        Matrix n = new Matrix();
         float[] values = new float[9];
         
         float[] point = new float[9];
-        point[0] = 9;
-        point[1] = 0;
-        point[2] = 0;
-        point[3] = 0;
-        point[4] = 9;
-        point[5] = 0;
-        point[6] = 0;
-        point[7] = 0;
+        point[0] = 1;
+        point[1] = 2;
+        point[2] = 3;
+        point[3] = 4;
+        point[4] = 5;
+        point[5] = 6;
+        point[6] = 7;
+        point[7] = 8;
         point[8] = 9;
         m.setValues(point);
+        n.setValues(point);
         
-        m.getValues(values);
+        float[] vec = new float[3];
+        vec[0] = 2;
+        vec[1] = 3;
+        vec[2] = 4;
         
-        Matrix invertMatrix = new Matrix(m);
+        float[] dest = new float[3];
+        
+        Matrix l = new Matrix();
+        l.setConcat(m, n);
+        l.getValues(values);
+        
+        //Matrix invertMatrix = new Matrix(m);
         //float[] inverted = new float[9];
-        Log.d(LOG_TAG, "invert matrix: " + m.invert(m));
-        m.getValues(values);
+        //Log.d(LOG_TAG, "invert matrix: " + m.invert(m));
+        //m.getValues(values);
         printRotationMatrix(values);
+        //printVector(values, "");
+        
+        mRotationMatrix = new Matrix();
     }
     
     /**
@@ -146,6 +169,8 @@ public class MySensorAppActivity extends Activity implements SensorEventListener
         
         mSensorManager.registerListener(this, mMagneticField, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        
+        mSensorManager.registerListener(this, mLinearAcceleration, SensorManager.SENSOR_DELAY_NORMAL);
     }
     
     protected void onPause() {
@@ -197,6 +222,10 @@ public class MySensorAppActivity extends Activity implements SensorEventListener
 			mRotation = event.values.clone();
 		}
 		
+		if (Sensor.TYPE_LINEAR_ACCELERATION == event.sensor.getType()) {
+			mLinearAccelerationValues = event.values.clone();
+		}
+		
 		float[] R = new float[9];
 		float[] I = new float[9];
 		//float[] rotation = new float[16];
@@ -218,20 +247,50 @@ public class MySensorAppActivity extends Activity implements SensorEventListener
 			}
 			
 		}*/
-		
-		if (mRotation != null && mGravity != null) {
+		/*
+		if (mRotation != null && mGeomagnetic != null) {
 			SensorManager.getRotationMatrixFromVector(R, mRotation);
-			R = roundNDigitsAfterComma(R, 9, 1);
+			
 			Matrix rotationMatrix = new Matrix();
 			rotationMatrix.setValues(R);
-			Log.d(LOG_TAG, "is invertable? "+rotationMatrix.invert(rotationMatrix));
+			//Log.d(LOG_TAG, "is invertable? "+rotationMatrix.invert(rotationMatrix));
+			rotationMatrix.invert(rotationMatrix);
 			rotationMatrix.getValues(R);
+			R = roundNDigitsAfterComma(R, 9, 1);
 			printRotationMatrix(R);
 			
 			// Multipliziere Rotationsmatrix mit Gravity Vektor
-			float[] rotatedVector = matrixMultiply(mGravity, transformRotationMatrix(R));
+			float[] rotatedVector = matrixMultiply(mGeomagnetic, transformRotationMatrix(R));
 			//printVector(roundNDigitsAfterComma(mGravity, 3, 1), "rotated gravity vector");
-			printVector(roundNDigitsAfterComma(rotatedVector, 3, 1), "rotated gravity vector");
+			printVector(roundNDigitsAfterComma(rotatedVector, 3, 1), "rotated geomagnetic vector");
+			
+			double betrag = Math.sqrt(Math.pow(rotatedVector[0],2) + Math.pow(rotatedVector[1],2) + Math.pow(rotatedVector[2],2));
+			Log.d(LOG_TAG, "Betrag: "+betrag);
+			mTextBetrag.setText(new Double(betrag).toString());
+		}*/
+		
+		if (mRotation != null && mLinearAccelerationValues != null) {
+			mLinearAccelerationValues = roundNDigitsAfterComma(mLinearAccelerationValues, 3, 1);
+			//printVector(mLinearAccelerationValues, "");
+			
+			SensorManager.getRotationMatrixFromVector(R, mRotation);
+			
+			Matrix rotationMatrix = new Matrix();
+			rotationMatrix.setValues(R);
+			//Log.d(LOG_TAG, "is invertable? "+rotationMatrix.invert(rotationMatrix));
+			rotationMatrix.invert(rotationMatrix);
+			rotationMatrix.getValues(R);
+			R = roundNDigitsAfterComma(R, 9, 1);
+			printRotationMatrix(R);
+			
+			// Multipliziere Rotationsmatrix mit Gravity Vektor
+			float[] rotatedVector = matrixMultiply(mLinearAccelerationValues, transformRotationMatrix(R));
+			//printVector(roundNDigitsAfterComma(mGravity, 3, 1), "rotated gravity vector");
+			printVector(roundNDigitsAfterComma(rotatedVector, 3, 1), "rotated linear accelaration vector");
+			
+			double betrag = Math.sqrt(Math.pow(rotatedVector[0],2) + Math.pow(rotatedVector[1],2) + Math.pow(rotatedVector[2],2));
+			Log.d(LOG_TAG, "Betrag: "+betrag);
+			mTextBetrag.setText(new Double(betrag).toString());
 		}
 		
 	}
@@ -243,8 +302,9 @@ public class MySensorAppActivity extends Activity implements SensorEventListener
 	private void printVector(float[] input, String name) {
 		StringBuffer buf = new StringBuffer();
 		buf.append("( "+ input[0] + " " + input[1] + " " + input[2] + ")");
-		//Log.d(LOG_TAG, name);
-		//Log.d(LOG_TAG, "( "+ input[0] + " " + input[1] + " " + input[2] + ")");
+		
+		Log.d(LOG_TAG, name);
+		Log.d(LOG_TAG, "( "+ input[0] + " " + input[1] + " " + input[2] + ")");
 		mTextRotationVector.setText(buf.toString());
 	}
 	
