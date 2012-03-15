@@ -10,7 +10,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
-public class ObjectDAO{
+public class DAO{
 
 	private static final String LOG_TAG = "ObjectDAO";
 	
@@ -18,8 +18,9 @@ public class ObjectDAO{
 	private MySQLiteHelper dbHelper;
 	private String[] allObjectColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJECT_NAME};
 	private String[] allBluetoothColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_BLUETOOTH_NAME, MySQLiteHelper.COLUMN_BLUETOOTH_ADDRESS};
+	private String[] allWifiColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_WIFI_SSID, MySQLiteHelper.COLUMN_WIFI_BSSID};
 	
-	public ObjectDAO(Context context) {
+	public DAO(Context context) {
 		dbHelper = new MySQLiteHelper(context);
 	}
 	
@@ -31,6 +32,46 @@ public class ObjectDAO{
 		dbHelper.close();
 	}
 	
+	public WiFi createWifi(String ssid, String bssid) {
+		ContentValues values = new ContentValues();
+		values.put(MySQLiteHelper.COLUMN_WIFI_SSID, ssid);
+		values.put(MySQLiteHelper.COLUMN_WIFI_BSSID, bssid);
+		long insertId = database.insert(MySQLiteHelper.TABLE_WIFI, null, values);
+		
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_WIFI, allWifiColumns, MySQLiteHelper.COLUMN_ID + " = " + insertId, null, null, null, null);
+		cursor.moveToFirst();
+		WiFi wifi = cursorToWifi(cursor);
+		cursor.close();
+		return wifi;
+	}
+	
+	private WiFi cursorToWifi(Cursor cursor) {
+		WiFi wifi = new WiFi();
+		wifi.setId(cursor.getLong(0));
+		wifi.setSsid(cursor.getString(1));
+		wifi.setBssid(cursor.getString(2));
+		return wifi;
+	}
+	
+	public void deleteWifi(WiFi wf) {
+		long id = wf.getId();
+		Log.d(LOG_TAG, "WiFi deleted with id: " + id);
+		database.delete(MySQLiteHelper.TABLE_WIFI, MySQLiteHelper.COLUMN_ID + " = " + id, null);
+	}
+	
+	public List<WiFi> getAllWifis() {
+		List<WiFi> wifis = new ArrayList<WiFi>();
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_WIFI, allWifiColumns, null, null, null, null, null);
+		cursor.moveToFirst();
+		while (!cursor.isAfterLast()) {
+			WiFi wf = cursorToWifi(cursor);
+			wifis.add(wf);
+			cursor.moveToNext();
+		}
+		cursor.close();
+		return wifis;
+	}
+
 	public Bluetooth createBluetooth(String name, String address) {
 		ContentValues values = new ContentValues();
 		values.put(MySQLiteHelper.COLUMN_BLUETOOTH_NAME, name);

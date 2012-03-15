@@ -11,8 +11,9 @@ import de.htw.bluetooth.BluetoothService;
 import de.htw.bluetooth.RemoteBluetoothDevice;
 import de.htw.bluetooth.BluetoothService.LocalBluetoothBinder;
 import de.htw.db.Bluetooth;
-import de.htw.db.ObjectDAO;
+import de.htw.db.DAO;
 import de.htw.db.Object;
+import de.htw.db.WiFi;
 import de.htw.wifi.*;
 import de.htw.wifi.WiFiService.LocalWiFiBinder;
 
@@ -55,7 +56,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	private List<RemoteBluetoothDevice> mCurrentBluetoothDevices;
 	private List<ScanResult> mCurrentWiFiDevices;
 
-	private ObjectDAO objectDAO;
+	private DAO dao;
     
 	/** Called when the activity is first created. */
     @Override
@@ -103,13 +104,13 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         mCurrentBluetoothDevices = new ArrayList<RemoteBluetoothDevice>();
         mCurrentWiFiDevices = new ArrayList<ScanResult>();
         
-        objectDAO = new ObjectDAO(this);
-        objectDAO.open();
+        dao = new DAO(this);
+        dao.open();
         
         setupDB();
         //destroyDB();
         
-        List<Object> objects = objectDAO.getAllObjects();
+        List<Object> objects = dao.getAllObjects();
         
         Log.d(LOG_TAG, "Objects in Database: "+objects.size());
         
@@ -117,7 +118,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         	Log.d(LOG_TAG, o.getObjectName());
         }
         
-        List<Bluetooth> bluetooths = objectDAO.getAllBluetooths();
+        List<Bluetooth> bluetooths = dao.getAllBluetooths();
         
         Log.d(LOG_TAG, "Bluetooth Devices in Database: "+ bluetooths.size());
         
@@ -125,24 +126,39 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         	Log.d(LOG_TAG, bt.getName() + " " + bt.getAddress());
         }
         
+        List<WiFi> wifis = dao.getAllWifis();
+        
+        Log.d(LOG_TAG, "WiFi Devices in Database: "+ wifis.size());
+        
+        for (WiFi wf : wifis) {
+        	Log.d(LOG_TAG, wf.getSsid() + " " + wf.getBssid());
+        }
+        
     }
     
     private void setupDB() {
-    	objectDAO.createObject("Trinkflasche");
-    	objectDAO.createBluetooth("iMac", "43:F5:B6:34");
+    	dao.createObject("Trinkflasche");
+    	dao.createBluetooth("iMac", "43:F5:B6:34");
+    	dao.createWifi("Christians Macbook", "c0:c1:c0:18:71:d2");
     }
     
     private void destroyDB() {
-    	 List<Object> objects = objectDAO.getAllObjects();
+    	 List<Object> objects = dao.getAllObjects();
          
          for (Object o : objects) {
-        	objectDAO.deleteObject(o);
+        	dao.deleteObject(o);
          }
          
-         List<Bluetooth> bluetooths = objectDAO.getAllBluetooths();
+         List<Bluetooth> bluetooths = dao.getAllBluetooths();
          
          for (Bluetooth bt : bluetooths) {
-        	objectDAO.deleteBluetooth(bt);
+        	dao.deleteBluetooth(bt);
+         }
+         
+         List<WiFi> wifis = dao.getAllWifis();
+         
+         for (WiFi wf : wifis) {
+        	dao.deleteWifi(wf);
          }
     }
     
@@ -268,7 +284,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
     		unbindService(mWiFiConnection);
     	}
     	
-    	objectDAO.close();
+    	dao.close();
     	
     	super.onDestroy();
     }
