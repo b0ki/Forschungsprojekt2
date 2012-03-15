@@ -4,20 +4,9 @@ package de.htw;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-
-import de.htw.bluetooth.BluetoothInterface;
-import de.htw.bluetooth.BluetoothService;
-import de.htw.bluetooth.RemoteBluetoothDevice;
-import de.htw.bluetooth.BluetoothService.LocalBluetoothBinder;
-import de.htw.db.Bluetooth;
-import de.htw.db.DAO;
-import de.htw.db.Obj_Bt_Relation;
-import de.htw.db.Object;
-import de.htw.db.WiFi;
-import de.htw.wifi.*;
-import de.htw.wifi.WiFiService.LocalWiFiBinder;
-
+import java.util.Set;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -33,6 +22,20 @@ import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+import de.htw.bluetooth.BluetoothInterface;
+import de.htw.bluetooth.BluetoothService;
+import de.htw.bluetooth.BluetoothService.LocalBluetoothBinder;
+import de.htw.bluetooth.RemoteBluetoothDevice;
+import de.htw.db.Bluetooth;
+import de.htw.db.DAO;
+import de.htw.db.Obj_Bt_Relation;
+import de.htw.db.Obj_Wifi_Relation;
+import de.htw.db.Object;
+import de.htw.db.WiFi;
+import de.htw.wifi.WiFiComparator;
+import de.htw.wifi.WiFiInterface;
+import de.htw.wifi.WiFiService;
+import de.htw.wifi.WiFiService.LocalWiFiBinder;
 
 public class ForschungsprojektAppActivity extends Activity implements BluetoothInterface, WiFiInterface {
 
@@ -58,6 +61,8 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	private List<ScanResult> mCurrentWiFiDevices;
 
 	private DAO dao;
+
+	private List<Object> mFoundObjectsFromBluetooth;
     
 	/** Called when the activity is first created. */
     @Override
@@ -77,6 +82,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 					mBluetoothService.unregisterCallback(ForschungsprojektAppActivity.this);
 			    	unbindService(mBluetoothConnection);
 			    	isBluetoothServiceBound = false;
+			    	mFoundObjectsFromBluetooth.clear();
 				}
 				
 			}
@@ -98,6 +104,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 				} else {
 					unbindService(mWiFiConnection);
 					isWiFiServiceBound = false;
+					mFoundObjectsFromWifi.clear();
 				}
 			}
 		});
@@ -128,7 +135,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         for (Bluetooth bt : bluetooths) {
         	Log.d(LOG_TAG, "ID: " + bt.getId() + ", Name: " + bt.getName() + ", Address: " + bt.getAddress());
         }
-        /*
+        
         List<WiFi> wifis = dao.getAllWifis();
         
         Log.d(LOG_TAG, "WiFi Devices in Database: "+ wifis.size());
@@ -136,7 +143,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         for (WiFi wf : wifis) {
         	Log.d(LOG_TAG, wf.getSsid() + " " + wf.getBssid());
         }
-        */
+        
         List<Obj_Bt_Relation> obj_bts = dao.getAllObj_Bts();
         
         Log.d(LOG_TAG, "Obj_BT Relationen in Database: "+ obj_bts.size());
@@ -145,16 +152,27 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         	Log.d(LOG_TAG, "ID: " + obj_bt.getId() + ", Obj FK: "+obj_bt.getObj_fk() + ", BT FK: " + obj_bt.getBt_fk());
         }
         
+        List<Obj_Wifi_Relation> obj_wifis = dao.getAllObj_Wifis();
         
+        Log.d(LOG_TAG, "Obj_Wifi Relationen in Database: "+ obj_wifis.size());
+        
+        for (Obj_Wifi_Relation obj_wifi : obj_wifis) {
+        	Log.d(LOG_TAG, "ID: " + obj_wifi.getId() + ", Obj FK: "+obj_wifi.getObj_fk() + ", WiFi FK: " + obj_wifi.getWifi_fk());
+        }
+        
+        mFoundObjectsFromBluetooth = new ArrayList<Object>();
+        mFoundObjectsFromWifi = new ArrayList<Object>();
     }
     
     private void setupDB() {
     	Object o1 = dao.createObject("Trinkflasche");
     	Object o2 = dao.createObject("Buch");
+    	Object o3 = dao.createObject("Uhr");
     	Bluetooth b1 = dao.createBluetooth("INKAMACBOOK", "00:26:08:CB:F4:43");
-    	//dao.createWifi("Christians Macbook", "c0:c1:c0:18:71:d2");
+    	WiFi w1 = dao.createWifi("INKAMACBOOK", "00:26:bb:0e:95:83");
     	dao.createObj_Bt_Relation(o1.getId(), b1.getId());
     	dao.createObj_Bt_Relation(o2.getId(), b1.getId());
+    	dao.createObj_Wifi_Relation(o3.getId(), w1.getId());
     }
     
     private void destroyDB() {
@@ -232,39 +250,63 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 
 	@Override
 	public void onScannedBluetoothDevices(List<RemoteBluetoothDevice> devices) {
-		Log.d(LOG_TAG, "Bluetooth Networks: ");
+		//Log.d(LOG_TAG, "Bluetooth Networks: ");
 		
 		// sortiere Liste
 		Collections.sort(devices);
 		
-		StringBuffer buf = new StringBuffer();
+		/*StringBuffer buf = new StringBuffer();
 		for (RemoteBluetoothDevice device : devices) {
     		Log.d(LOG_TAG, "Address: "+ device.getAddress() + " | RSSI: " + device.getRSSI() + " | Name: " + device.getName());
     		//if (device.getAddress().equalsIgnoreCase("44:2A:60:DA:61:44")) {
     			buf.append(device.getName() + " | " + device.getAddress() + " |Ê" + device.getRSSI()+ "\n");    			
     		//}
-    	}
+    	}*/
 		
 		mCurrentBluetoothDevices = devices;
 		//mBluetoothQuerries.setText(buf.toString());
 		
-		printFoundObjects(collectObjects(mCurrentBluetoothDevices));
 		
+		mFoundObjectsFromBluetooth = collectObjectsFromBluetooth(mCurrentBluetoothDevices);
+		//printFoundObjects(mFoundObjectsFromBluetooth, "Bluetooth");
+		
+		printObjects(conjuntObjects(), "Bluetooth");
 	}
 	
-	private void printFoundObjects(List<Object> objects) {
-		Log.d(LOG_TAG, "Found Objects after bluetooth scan: "+ objects.size());
+	private void printFoundObjects(List<Object> objects, String source) {
+		Log.d(LOG_TAG, "Found Objects after "+source+" scan: "+ objects.size());
         
         for (Object o: objects) {
         	Log.d(LOG_TAG, "ID: " + o.getId() + ", Name: " + o.getObjectName());
         }
 	}
 
-	private List<Object> collectObjects(List<RemoteBluetoothDevice> remoteBluetoothDevices) {
+	/**
+	 * Collect object given a list of remote devices.
+	 * @param remoteBluetoothDevices
+	 * @return
+	 */
+	private List<Object> collectObjectsFromBluetooth(List<RemoteBluetoothDevice> remoteBluetoothDevices) {
 		List<Object> objects = new ArrayList<Object>();
 		
 		for (RemoteBluetoothDevice bt : remoteBluetoothDevices) {
 			List<Object> found_objects = dao.getObjectsWithBluetooth(dao.getBluetoothByAddress(bt.getAddress()));
+			objects.addAll(found_objects);
+		}
+		
+		return objects;
+	}
+	
+	/**
+	 * Collect objects given a list of wifi devices.
+	 * @param remoteBluetoothDevices
+	 * @return
+	 */
+	private List<Object> collectObjectsFromWifi(List<ScanResult> wifiNetworks) {
+		List<Object> objects = new ArrayList<Object>();
+		
+		for (ScanResult wifi : wifiNetworks) {
+			List<Object> found_objects = dao.getObjectsWithWifi(dao.getWifiByBSSID(wifi.BSSID));
 			objects.addAll(found_objects);
 		}
 		
@@ -312,6 +354,8 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
             Log.d(LOG_TAG, "disconnect from service");
         }
     };
+
+	private List<Object> mFoundObjectsFromWifi;
     
     
     @Override
@@ -333,15 +377,37 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 
 	@Override
 	public void onScannedWifi(List<ScanResult> results) {
-		Log.d(LOG_TAG, "WiFi Networks:");
+		//Log.d(LOG_TAG, "WiFi Networks:");
 		Collections.sort(results, new WiFiComparator());
 		
+		/*
 		StringBuffer buf = new StringBuffer();
 		for (ScanResult result : results) {
 			Log.d(LOG_TAG, "BSSID: " + result.BSSID + " |ÊSignal-Strength: "+ result.level + " |ÊSSID: " + result.SSID);
 			buf.append(result.SSID + "Ê|Ê" + result.BSSID + " |Ê" + result.level + "\n");
 		}
+		*/
 		
 		mCurrentWiFiDevices = results;
+		mFoundObjectsFromWifi = collectObjectsFromWifi(mCurrentWiFiDevices);
+		//printFoundObjects(mFoundObjectsFromWifi, "Wifi");
+		
+		printObjects(conjuntObjects(), "WiFi");
+	}
+	
+	private void printObjects(Set<Object> conjuntObjects, String source) {
+		Log.d(LOG_TAG, "Found Objects after scan update ("+source+") : "+ conjuntObjects.size());
+		for (Object o : conjuntObjects) {
+			Log.d(LOG_TAG, "ID: " + o.getId() + ", Name: " + o.getObjectName());
+		}
+		
+	}
+
+	private Set<Object> conjuntObjects() {
+		Set<Object> set = new HashSet<Object>();
+		set.addAll(mFoundObjectsFromBluetooth);
+		set.addAll(mFoundObjectsFromWifi);
+		
+		return set;
 	}
 }

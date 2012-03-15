@@ -1,5 +1,7 @@
 package de.htw.db;
 
+import de.htw.bluetooth.RemoteBluetoothDevice;
+
 /**
  * This class is our model and contains the data we will save in the database.
  * @author christian
@@ -29,5 +31,20 @@ public class Object {
 	@Override
 	public String toString() {
 		return object_name;
+	}
+	
+	@Override
+	public boolean equals(java.lang.Object o) {
+		if (this == o) {
+			return true;
+		}
+		
+		if ( !(o instanceof Object) ) {
+			return false;
+		}
+		
+		Object other= (Object) o;
+		
+		return (this.id == other.getId());
 	}
 }

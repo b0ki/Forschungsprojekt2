@@ -32,6 +32,10 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 	public static final String COLUMN_OBJ_FK = "obj_fk";	// Foreign Key auf Object
 	public static final String COLUMN_BT_FK = "bt_fk";		// Foreign Key auf Bluetooth
 	
+	// Verknüpfungstabelle Objekte und WiFi
+	public static final String TABLE_OBJ_WIFI = "obj_wifi_table";
+	public static final String COLUMN_WIFI_FK = "wifi_fk";
+	
 	private static final String CREATE_OBJECT_TABLE = "create table "
 			+ TABLE_OBJECTS + "( " + COLUMN_ID
 			+ " integer primary key autoincrement, " + COLUMN_OBJECT_NAME
@@ -57,6 +61,14 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 			+ "FOREIGN KEY (" + COLUMN_OBJ_FK + ") REFERENCES " + TABLE_OBJECTS + " (" + COLUMN_ID + ") ON DELETE CASCADE, "
 			+ "FOREIGN KEY (" + COLUMN_BT_FK + ") REFERENCES " + TABLE_BLUETOOTH+ " (" + COLUMN_ID + ") ON DELETE CASCADE);";
 	
+	private static final String CREATE_OBJ_WIFI_TABLE = "create table "
+			+ TABLE_OBJ_WIFI + "( " + COLUMN_ID
+			+ " integer primary key autoincrement, " + COLUMN_OBJ_FK
+			+ " integer not null, "
+			+ COLUMN_WIFI_FK + " integer not null, "
+			+ "FOREIGN KEY (" + COLUMN_OBJ_FK + ") REFERENCES " + TABLE_OBJECTS + " (" + COLUMN_ID + ") ON DELETE CASCADE, "
+			+ "FOREIGN KEY (" + COLUMN_WIFI_FK + ") REFERENCES " + TABLE_WIFI+ " (" + COLUMN_ID + ") ON DELETE CASCADE);";
+	
 	public MySQLiteHelper(Context context) {
 		super(context, DATABASE_NAME, null, DATABASE_VERSION);
 	}
@@ -71,6 +83,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 		db.execSQL(CREATE_BLUETOOTH_TABLE);
 		db.execSQL(CREATE_WIFI_TABLE);
 		db.execSQL(CREATE_OBJ_BT_TABLE);
+		db.execSQL(CREATE_OBJ_WIFI_TABLE);
 		
 	}
 
@@ -82,6 +95,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 		db.execSQL("DROP TABLE IF EXISTS " + TABLE_BLUETOOTH);
 		db.execSQL("DROP TABLE IF EXISTS " + TABLE_WIFI);
 		db.execSQL("DROP TABLE IF EXISTS " + TABLE_OBJ_BT);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_OBJ_WIFI);
 		
 		onCreate(db);	// Erstelle neue Datenbank
 	}

@@ -20,6 +20,7 @@ public class DAO{
 	private String[] allBluetoothColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_BLUETOOTH_NAME, MySQLiteHelper.COLUMN_BLUETOOTH_ADDRESS};
 	private String[] allWifiColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_WIFI_SSID, MySQLiteHelper.COLUMN_WIFI_BSSID};
 	private String[] allObj_BtColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJ_FK, MySQLiteHelper.COLUMN_BT_FK};
+	private String[] allObj_WifiColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJ_FK, MySQLiteHelper.COLUMN_WIFI_FK};
 	
 	public DAO(Context context) {
 		dbHelper = new MySQLiteHelper(context);
@@ -33,6 +34,46 @@ public class DAO{
 		dbHelper.close();
 	}
 	
+	public Obj_Wifi_Relation createObj_Wifi_Relation(long obj_fk, long wifi_fk) {
+		ContentValues values = new ContentValues();
+		values.put(MySQLiteHelper.COLUMN_OBJ_FK, obj_fk);
+		values.put(MySQLiteHelper.COLUMN_WIFI_FK, wifi_fk);
+		long insertId = database.insert(MySQLiteHelper.TABLE_OBJ_WIFI, null, values);
+		
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJ_WIFI, allObj_WifiColumns, MySQLiteHelper.COLUMN_ID + " = " + insertId, null, null, null, null);
+		cursor.moveToFirst();
+		Obj_Wifi_Relation obj_wifi = cursorToObj_Wifi(cursor);
+		cursor.close();
+		return obj_wifi;
+	}
+	
+	private Obj_Wifi_Relation cursorToObj_Wifi(Cursor cursor) {
+		Obj_Wifi_Relation obj_wifi = new Obj_Wifi_Relation();
+		obj_wifi.setId(cursor.getLong(0));
+		obj_wifi.setObj_fk(cursor.getLong(1));
+		obj_wifi.setWifi_fk(cursor.getLong(2));
+		return obj_wifi;
+	}
+	
+	public void deleteObj_Wifi(Obj_Wifi_Relation obj_wifi) {
+		long id = obj_wifi.getId();
+		Log.d(LOG_TAG, "Obj_Wifi_Rel deleted with id: " + id);
+		database.delete(MySQLiteHelper.TABLE_OBJ_WIFI, MySQLiteHelper.COLUMN_ID + " = " + id, null);
+	}
+	
+	public List<Obj_Wifi_Relation> getAllObj_Wifis() {
+		List<Obj_Wifi_Relation> obj_wifis = new ArrayList<Obj_Wifi_Relation>();
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJ_WIFI, allObj_WifiColumns, null, null, null, null, null);
+		cursor.moveToFirst();
+		while (!cursor.isAfterLast()) {
+			Obj_Wifi_Relation obj_wifi = cursorToObj_Wifi(cursor);
+			obj_wifis.add(obj_wifi);
+			cursor.moveToNext();
+		}
+		cursor.close();
+		return obj_wifis;
+	}
+
 	public Obj_Bt_Relation createObj_Bt_Relation(long obj_fk, long bt_fk) {
 		ContentValues values = new ContentValues();
 		values.put(MySQLiteHelper.COLUMN_OBJ_FK, obj_fk);
@@ -250,5 +291,50 @@ public class DAO{
 		Object object = cursorToObject(cursor);
 		cursor.close();
 		return object;
+	}
+
+	/**
+	 * Get a Wifi entry by a given bssid.
+	 * @param bSSID
+	 * @return
+	 */
+	public WiFi getWifiByBSSID(String bssid) {
+		String WHERE = MySQLiteHelper.COLUMN_WIFI_BSSID + " = " + "'"+bssid+"'";
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_WIFI, allWifiColumns, WHERE, null, null, null, null);
+		cursor.moveToFirst();
+		WiFi wf = null;
+		if (!cursor.isAfterLast()) {
+			wf = cursorToWifi(cursor);			
+		}
+		cursor.close();
+		return wf;
+	}
+
+	public List<Object> getObjectsWithWifi(WiFi wifi) {
+		if (wifi == null) {
+			return new ArrayList<Object>();
+		}
+		
+		String where_statement = MySQLiteHelper.COLUMN_WIFI_FK + " = " + wifi.getId();
+		
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJ_WIFI, allObj_WifiColumns, where_statement, null, null, null, null);
+		cursor.moveToFirst();
+		
+		// Hole alle Object IDS aus Tabelle die mit der Wifi Adresse verbunden sind
+		List<Long> obj_ids = new ArrayList<Long>();
+		while (!cursor.isAfterLast()) {
+			long id = cursor.getLong(1);
+			obj_ids.add(new Long(id));
+			cursor.moveToNext();
+		}
+		cursor.close();
+		
+		// Now we can get all Objects
+		List<Object> objects = new ArrayList<Object>();
+		for (Long l : obj_ids) {
+			objects.add(getObjectByID(l.longValue()));
+		}
+		
+		return objects;
 	}
 }
