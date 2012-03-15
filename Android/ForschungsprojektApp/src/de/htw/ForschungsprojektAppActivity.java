@@ -12,6 +12,7 @@ import de.htw.bluetooth.RemoteBluetoothDevice;
 import de.htw.bluetooth.BluetoothService.LocalBluetoothBinder;
 import de.htw.db.Bluetooth;
 import de.htw.db.DAO;
+import de.htw.db.Obj_Bt_Relation;
 import de.htw.db.Object;
 import de.htw.db.WiFi;
 import de.htw.wifi.*;
@@ -107,10 +108,12 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         dao = new DAO(this);
         dao.open();
         
-        setupDB();
+        //setupDB();
         //destroyDB();
-        
         List<Object> objects = dao.getAllObjects();
+        
+        dao.deleteObject(objects.get(0));
+        objects = dao.getAllObjects();
         
         Log.d(LOG_TAG, "Objects in Database: "+objects.size());
         
@@ -134,12 +137,21 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         	Log.d(LOG_TAG, wf.getSsid() + " " + wf.getBssid());
         }
         
+        List<Obj_Bt_Relation> obj_bts = dao.getAllObj_Bts();
+        
+        Log.d(LOG_TAG, "Obj_BT Relationen in Database: "+ obj_bts.size());
+        
+        for (Obj_Bt_Relation obj_bt : obj_bts) {
+        	Log.d(LOG_TAG, "Obj FK: "+obj_bt.getObj_fk() + ", BT FK: " + obj_bt.getBt_fk());
+        }
+        
     }
     
     private void setupDB() {
-    	dao.createObject("Trinkflasche");
-    	dao.createBluetooth("iMac", "43:F5:B6:34");
+    	Object o1 = dao.createObject("Trinkflasche");
+    	Bluetooth b1 = dao.createBluetooth("iMac", "43:F5:B6:34");
     	dao.createWifi("Christians Macbook", "c0:c1:c0:18:71:d2");
+    	dao.createObj_Bt_Relation(o1.getId(), b1.getId());
     }
     
     private void destroyDB() {
@@ -159,6 +171,12 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
          
          for (WiFi wf : wifis) {
         	dao.deleteWifi(wf);
+         }
+         
+         List<Obj_Bt_Relation> obj_bts = dao.getAllObj_Bts();
+         
+         for (Obj_Bt_Relation obj_bt : obj_bts) {
+        	dao.deleteObj_Bt(obj_bt);
          }
     }
     

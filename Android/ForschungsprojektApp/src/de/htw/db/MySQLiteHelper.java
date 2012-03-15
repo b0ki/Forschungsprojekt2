@@ -27,6 +27,11 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 	public static final String COLUMN_WIFI_SSID = "wifi_ssid";
 	public static final String COLUMN_WIFI_BSSID = "wifi_bssid";
 	
+	// Verknüpfungstabelle Objekte und Bluetooth
+	public static final String TABLE_OBJ_BT = "obj_bt";
+	public static final String COLUMN_OBJ_FK = "obj_fk";	// Foreign Key auf Object
+	public static final String COLUMN_BT_FK = "bt_fk";		// Foreign Key auf Bluetooth
+	
 	private static final String CREATE_OBJECT_TABLE = "create table "
 			+ TABLE_OBJECTS + "( " + COLUMN_ID
 			+ " integer primary key autoincrement, " + COLUMN_OBJECT_NAME
@@ -44,6 +49,14 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 			+ " text not null, " + COLUMN_WIFI_BSSID
 			+ " text not null);";
 	
+	private static final String CREATE_OBJ_BT_TABLE = "create table "
+			+ TABLE_OBJ_BT + "( " + COLUMN_ID
+			+ " integer primary key autoincrement, " + COLUMN_OBJ_FK
+			+ " integer not null, "
+			+ COLUMN_BT_FK + " integer not null, "
+			+ "FOREIGN KEY (" + COLUMN_OBJ_FK + ") REFERENCES " + TABLE_OBJECTS + " (" + COLUMN_ID + ") ON DELETE CASCADE, "
+			+ "FOREIGN KEY (" + COLUMN_BT_FK + ") REFERENCES " + TABLE_BLUETOOTH+ " (" + COLUMN_ID + ") ON DELETE CASCADE);";
+	
 	public MySQLiteHelper(Context context) {
 		super(context, DATABASE_NAME, null, DATABASE_VERSION);
 	}
@@ -57,6 +70,7 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 		db.execSQL(CREATE_OBJECT_TABLE);
 		db.execSQL(CREATE_BLUETOOTH_TABLE);
 		db.execSQL(CREATE_WIFI_TABLE);
+		db.execSQL(CREATE_OBJ_BT_TABLE);
 		
 	}
 
@@ -67,8 +81,20 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 		db.execSQL("DROP TABLE IF EXISTS " + TABLE_OBJECTS);
 		db.execSQL("DROP TABLE IF EXISTS " + TABLE_BLUETOOTH);
 		db.execSQL("DROP TABLE IF EXISTS " + TABLE_WIFI);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_OBJ_BT);
 		
 		onCreate(db);	// Erstelle neue Datenbank
+	}
+	
+	@Override
+	public void onOpen(SQLiteDatabase db) {
+		super.onOpen(db);
+	
+		if (!db.isReadOnly()) {
+			// Enable foreign key constraints
+			db.execSQL("PRAGMA foreign_keys=ON;");
+		}
+		
 	}
 
 }

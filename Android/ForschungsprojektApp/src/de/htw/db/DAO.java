@@ -19,6 +19,7 @@ public class DAO{
 	private String[] allObjectColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJECT_NAME};
 	private String[] allBluetoothColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_BLUETOOTH_NAME, MySQLiteHelper.COLUMN_BLUETOOTH_ADDRESS};
 	private String[] allWifiColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_WIFI_SSID, MySQLiteHelper.COLUMN_WIFI_BSSID};
+	private String[] allObj_BtColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJ_FK, MySQLiteHelper.COLUMN_BT_FK};
 	
 	public DAO(Context context) {
 		dbHelper = new MySQLiteHelper(context);
@@ -32,6 +33,46 @@ public class DAO{
 		dbHelper.close();
 	}
 	
+	public Obj_Bt_Relation createObj_Bt_Relation(long obj_fk, long bt_fk) {
+		ContentValues values = new ContentValues();
+		values.put(MySQLiteHelper.COLUMN_OBJ_FK, obj_fk);
+		values.put(MySQLiteHelper.COLUMN_BT_FK, bt_fk);
+		long insertId = database.insert(MySQLiteHelper.TABLE_OBJ_BT, null, values);
+		
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJ_BT, allObj_BtColumns, MySQLiteHelper.COLUMN_ID + " = " + insertId, null, null, null, null);
+		cursor.moveToFirst();
+		Obj_Bt_Relation obj_bt = cursorToObj_Bt(cursor);
+		cursor.close();
+		return obj_bt;
+	}
+	
+	private Obj_Bt_Relation cursorToObj_Bt(Cursor cursor) {
+		Obj_Bt_Relation obj_bt = new Obj_Bt_Relation();
+		obj_bt.setId(cursor.getLong(0));
+		obj_bt.setObj_fk(cursor.getLong(1));
+		obj_bt.setBt_fk(cursor.getLong(2));
+		return obj_bt;
+	}
+	
+	public void deleteObj_Bt(Obj_Bt_Relation obj_bt) {
+		long id = obj_bt.getId();
+		Log.d(LOG_TAG, "Obj_Bt_Rel deleted with id: " + id);
+		database.delete(MySQLiteHelper.TABLE_OBJ_BT, MySQLiteHelper.COLUMN_ID + " = " + id, null);
+	}
+	
+	public List<Obj_Bt_Relation> getAllObj_Bts() {
+		List<Obj_Bt_Relation> obj_bts = new ArrayList<Obj_Bt_Relation>();
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJ_BT, allObj_BtColumns, null, null, null, null, null);
+		cursor.moveToFirst();
+		while (!cursor.isAfterLast()) {
+			Obj_Bt_Relation obj_bt = cursorToObj_Bt(cursor);
+			obj_bts.add(obj_bt);
+			cursor.moveToNext();
+		}
+		cursor.close();
+		return obj_bts;
+	}
+
 	public WiFi createWifi(String ssid, String bssid) {
 		ContentValues values = new ContentValues();
 		values.put(MySQLiteHelper.COLUMN_WIFI_SSID, ssid);
