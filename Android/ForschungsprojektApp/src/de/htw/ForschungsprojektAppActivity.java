@@ -10,6 +10,7 @@ import de.htw.bluetooth.BluetoothInterface;
 import de.htw.bluetooth.BluetoothService;
 import de.htw.bluetooth.RemoteBluetoothDevice;
 import de.htw.bluetooth.BluetoothService.LocalBluetoothBinder;
+import de.htw.db.Bluetooth;
 import de.htw.db.ObjectDAO;
 import de.htw.db.Object;
 import de.htw.wifi.*;
@@ -105,22 +106,30 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         objectDAO = new ObjectDAO(this);
         objectDAO.open();
         
-        //setupDB();
+        setupDB();
         //destroyDB();
         
         List<Object> objects = objectDAO.getAllObjects();
         
-        Log.d(LOG_TAG, "Objects in Databse: "+objects.size());
+        Log.d(LOG_TAG, "Objects in Database: "+objects.size());
         
         for (Object o : objects) {
         	Log.d(LOG_TAG, o.getObjectName());
         }
         
+        List<Bluetooth> bluetooths = objectDAO.getAllBluetooths();
+        
+        Log.d(LOG_TAG, "Bluetooth Devices in Database: "+ bluetooths.size());
+        
+        for (Bluetooth bt : bluetooths) {
+        	Log.d(LOG_TAG, bt.getName() + " " + bt.getAddress());
+        }
         
     }
     
     private void setupDB() {
     	objectDAO.createObject("Trinkflasche");
+    	objectDAO.createBluetooth("iMac", "43:F5:B6:34");
     }
     
     private void destroyDB() {
@@ -128,6 +137,12 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
          
          for (Object o : objects) {
         	objectDAO.deleteObject(o);
+         }
+         
+         List<Bluetooth> bluetooths = objectDAO.getAllBluetooths();
+         
+         for (Bluetooth bt : bluetooths) {
+        	objectDAO.deleteBluetooth(bt);
          }
     }
     
