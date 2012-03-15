@@ -190,4 +190,65 @@ public class DAO{
 		cursor.close();
 		return objects;
 	}
+	
+	/**
+	 * Get a Bluetooth entry from database by its given address.
+	 * @param address 
+	 * @return Can be null.
+	 */
+	public Bluetooth getBluetoothByAddress(String address) {
+		String WHERE = MySQLiteHelper.COLUMN_BLUETOOTH_ADDRESS + " = " + "'"+address+"'";
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_BLUETOOTH, allBluetoothColumns, WHERE, null, null, null, null);
+		cursor.moveToFirst();
+		Bluetooth bt = null;
+		if (!cursor.isAfterLast()) {
+			bt = cursorToBluetooth(cursor);			
+		}
+		cursor.close();
+		return bt;
+	}
+	
+	
+	
+	/**
+	 * Get all objects which have a relation to the given bluetooth device.
+	 * @param bt
+	 * @return
+	 */
+	public List<Object> getObjectsWithBluetooth(Bluetooth bt) {
+		if (bt == null) {
+			return new ArrayList<Object>();
+		}
+		
+		String where_statement = MySQLiteHelper.COLUMN_BT_FK + " = " + bt.getId();
+		
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJ_BT, allObj_BtColumns, where_statement, null, null, null, null);
+		cursor.moveToFirst();
+		
+		// Hole alle Object IDS aus Tabelle die mit der Bluetooth Adresse verbunden sind
+		List<Long> obj_ids = new ArrayList<Long>();
+		while (!cursor.isAfterLast()) {
+			long id = cursor.getLong(1);
+			obj_ids.add(new Long(id));
+			cursor.moveToNext();
+		}
+		cursor.close();
+		
+		// Now we can get all Objects
+		List<Object> objects = new ArrayList<Object>();
+		for (Long l : obj_ids) {
+			objects.add(getObjectByID(l.longValue()));
+		}
+		
+		return objects;
+	}
+	
+	public Object getObjectByID(long id) {
+		String where_statement = MySQLiteHelper.COLUMN_ID + " = " + id;
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJECTS, allObjectColumns, where_statement, null, null, null, null);
+		cursor.moveToFirst();
+		Object object = cursorToObject(cursor);
+		cursor.close();
+		return object;
+	}
 }

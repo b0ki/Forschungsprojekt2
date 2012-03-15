@@ -112,13 +112,13 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         //destroyDB();
         List<Object> objects = dao.getAllObjects();
         
-        dao.deleteObject(objects.get(0));
-        objects = dao.getAllObjects();
+        //dao.deleteObject(objects.get(0));
+        //objects = dao.getAllObjects();
         
         Log.d(LOG_TAG, "Objects in Database: "+objects.size());
         
         for (Object o : objects) {
-        	Log.d(LOG_TAG, o.getObjectName());
+        	Log.d(LOG_TAG, "ID: " + o.getId() + ", Name: " + o.getObjectName());
         }
         
         List<Bluetooth> bluetooths = dao.getAllBluetooths();
@@ -126,9 +126,9 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         Log.d(LOG_TAG, "Bluetooth Devices in Database: "+ bluetooths.size());
         
         for (Bluetooth bt : bluetooths) {
-        	Log.d(LOG_TAG, bt.getName() + " " + bt.getAddress());
+        	Log.d(LOG_TAG, "ID: " + bt.getId() + ", Name: " + bt.getName() + ", Address: " + bt.getAddress());
         }
-        
+        /*
         List<WiFi> wifis = dao.getAllWifis();
         
         Log.d(LOG_TAG, "WiFi Devices in Database: "+ wifis.size());
@@ -136,22 +136,25 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         for (WiFi wf : wifis) {
         	Log.d(LOG_TAG, wf.getSsid() + " " + wf.getBssid());
         }
-        
+        */
         List<Obj_Bt_Relation> obj_bts = dao.getAllObj_Bts();
         
         Log.d(LOG_TAG, "Obj_BT Relationen in Database: "+ obj_bts.size());
         
         for (Obj_Bt_Relation obj_bt : obj_bts) {
-        	Log.d(LOG_TAG, "Obj FK: "+obj_bt.getObj_fk() + ", BT FK: " + obj_bt.getBt_fk());
+        	Log.d(LOG_TAG, "ID: " + obj_bt.getId() + ", Obj FK: "+obj_bt.getObj_fk() + ", BT FK: " + obj_bt.getBt_fk());
         }
+        
         
     }
     
     private void setupDB() {
     	Object o1 = dao.createObject("Trinkflasche");
-    	Bluetooth b1 = dao.createBluetooth("iMac", "43:F5:B6:34");
-    	dao.createWifi("Christians Macbook", "c0:c1:c0:18:71:d2");
+    	Object o2 = dao.createObject("Buch");
+    	Bluetooth b1 = dao.createBluetooth("INKAMACBOOK", "00:26:08:CB:F4:43");
+    	//dao.createWifi("Christians Macbook", "c0:c1:c0:18:71:d2");
     	dao.createObj_Bt_Relation(o1.getId(), b1.getId());
+    	dao.createObj_Bt_Relation(o2.getId(), b1.getId());
     }
     
     private void destroyDB() {
@@ -245,8 +248,29 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		mCurrentBluetoothDevices = devices;
 		//mBluetoothQuerries.setText(buf.toString());
 		
+		printFoundObjects(collectObjects(mCurrentBluetoothDevices));
+		
 	}
 	
+	private void printFoundObjects(List<Object> objects) {
+		Log.d(LOG_TAG, "Found Objects after bluetooth scan: "+ objects.size());
+        
+        for (Object o: objects) {
+        	Log.d(LOG_TAG, "ID: " + o.getId() + ", Name: " + o.getObjectName());
+        }
+	}
+
+	private List<Object> collectObjects(List<RemoteBluetoothDevice> remoteBluetoothDevices) {
+		List<Object> objects = new ArrayList<Object>();
+		
+		for (RemoteBluetoothDevice bt : remoteBluetoothDevices) {
+			List<Object> found_objects = dao.getObjectsWithBluetooth(dao.getBluetoothByAddress(bt.getAddress()));
+			objects.addAll(found_objects);
+		}
+		
+		return objects;
+	}
+
 	/** Defines callbacks for service binding, passed to bindService() */
     private ServiceConnection mBluetoothConnection = new ServiceConnection() {
 
