@@ -168,11 +168,14 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
     	Object o1 = dao.createObject("Trinkflasche");
     	Object o2 = dao.createObject("Buch");
     	Object o3 = dao.createObject("Uhr");
+    	Object o4 = dao.createObject("Kugelschreiber");
     	Bluetooth b1 = dao.createBluetooth("INKAMACBOOK", "00:26:08:CB:F4:43");
     	WiFi w1 = dao.createWifi("INKAMACBOOK", "00:26:bb:0e:95:83");
     	dao.createObj_Bt_Relation(o1.getId(), b1.getId());
     	dao.createObj_Bt_Relation(o2.getId(), b1.getId());
     	dao.createObj_Wifi_Relation(o3.getId(), w1.getId());
+    	dao.createObj_Bt_Relation(o4.getId(), b1.getId());
+    	dao.createObj_Wifi_Relation(o4.getId(), w1.getId());
     }
     
     private void destroyDB() {
@@ -404,9 +407,14 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	}
 
 	private Set<Object> conjuntObjects() {
+		Log.d(LOG_TAG, "call conjuntObjects()");
 		Set<Object> set = new HashSet<Object>();
-		set.addAll(mFoundObjectsFromBluetooth);
-		set.addAll(mFoundObjectsFromWifi);
+		for (Object o : mFoundObjectsFromBluetooth) {
+			set.add(o);
+		}
+		for (Object o : mFoundObjectsFromWifi) {
+			set.add(o);
+		}
 		
 		return set;
 	}

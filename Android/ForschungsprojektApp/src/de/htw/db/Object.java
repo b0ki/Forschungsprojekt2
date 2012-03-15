@@ -1,5 +1,6 @@
 package de.htw.db;
 
+import android.util.Log;
 import de.htw.bluetooth.RemoteBluetoothDevice;
 
 /**
@@ -8,6 +9,8 @@ import de.htw.bluetooth.RemoteBluetoothDevice;
  *
  */
 public class Object {
+	
+	private static final String LOG_TAG = "Object";
 
 	private long id;
 	private String object_name;
@@ -35,6 +38,7 @@ public class Object {
 	
 	@Override
 	public boolean equals(java.lang.Object o) {
+		Log.d(LOG_TAG, "call equals");
 		if (this == o) {
 			return true;
 		}
@@ -46,5 +50,15 @@ public class Object {
 		Object other= (Object) o;
 		
 		return (this.id == other.getId());
+	}
+	
+	@Override
+	public int hashCode() {
+		int result = 17;
+		
+		result = 31 * result + (int) (id ^(id >>> 32));
+		result = 31 * result + object_name.hashCode();
+		
+		return result;
 	}
 }
