@@ -2,6 +2,7 @@ package de.htw;
 
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -9,6 +10,8 @@ import de.htw.bluetooth.BluetoothInterface;
 import de.htw.bluetooth.BluetoothService;
 import de.htw.bluetooth.RemoteBluetoothDevice;
 import de.htw.bluetooth.BluetoothService.LocalBluetoothBinder;
+import de.htw.db.ObjectDAO;
+import de.htw.db.Object;
 import de.htw.wifi.*;
 import de.htw.wifi.WiFiService.LocalWiFiBinder;
 
@@ -47,6 +50,11 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	private TextView mBluetoothQuerries;
 
 	private ToggleButton mWiFiScan;
+	
+	private List<RemoteBluetoothDevice> mCurrentBluetoothDevices;
+	private List<ScanResult> mCurrentWiFiDevices;
+
+	private ObjectDAO objectDAO;
     
 	/** Called when the activity is first created. */
     @Override
@@ -90,6 +98,37 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 				}
 			}
 		});
+        
+        mCurrentBluetoothDevices = new ArrayList<RemoteBluetoothDevice>();
+        mCurrentWiFiDevices = new ArrayList<ScanResult>();
+        
+        objectDAO = new ObjectDAO(this);
+        objectDAO.open();
+        
+        //setupDB();
+        //destroyDB();
+        
+        List<Object> objects = objectDAO.getAllObjects();
+        
+        Log.d(LOG_TAG, "Objects in Databse: "+objects.size());
+        
+        for (Object o : objects) {
+        	Log.d(LOG_TAG, o.getObjectName());
+        }
+        
+        
+    }
+    
+    private void setupDB() {
+    	objectDAO.createObject("Trinkflasche");
+    }
+    
+    private void destroyDB() {
+    	 List<Object> objects = objectDAO.getAllObjects();
+         
+         for (Object o : objects) {
+        	objectDAO.deleteObject(o);
+         }
     }
     
     /**
@@ -154,8 +193,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
     		//}
     	}
 		
-		
-		
+		mCurrentBluetoothDevices = devices;
 		//mBluetoothQuerries.setText(buf.toString());
 		
 	}
@@ -215,6 +253,8 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
     		unbindService(mWiFiConnection);
     	}
     	
+    	objectDAO.close();
+    	
     	super.onDestroy();
     }
 
@@ -229,5 +269,6 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 			buf.append(result.SSID + "Ê|Ê" + result.BSSID + " |Ê" + result.level + "\n");
 		}
 		
+		mCurrentWiFiDevices = results;
 	}
 }
