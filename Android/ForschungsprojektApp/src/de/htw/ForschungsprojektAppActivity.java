@@ -14,9 +14,14 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.text.format.Time;
 import android.util.Log;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -32,12 +37,13 @@ import de.htw.db.Obj_Bt_Relation;
 import de.htw.db.Obj_Wifi_Relation;
 import de.htw.db.Object;
 import de.htw.db.WiFi;
+import de.htw.light.LightTracker;
 import de.htw.wifi.WiFiComparator;
 import de.htw.wifi.WiFiInterface;
 import de.htw.wifi.WiFiService;
 import de.htw.wifi.WiFiService.LocalWiFiBinder;
 
-public class ForschungsprojektAppActivity extends Activity implements BluetoothInterface, WiFiInterface {
+public class ForschungsprojektAppActivity extends Activity implements BluetoothInterface, WiFiInterface, SensorEventListener {
 
 	private static final String LOG_TAG = "ForschungsprojektAppActivity";
 	
@@ -63,12 +69,22 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	private DAO dao;
 
 	private List<Object> mFoundObjectsFromBluetooth;
+
+	private ToggleButton mLightSensorButton;
+
+	private SensorManager mSensorManager;
+
+	private Sensor mLight;
+
+	private Time mCurrentTime;
     
 	/** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+        
+        mCurrentTime = new Time();
         
         mBluetoothToggle = (ToggleButton) findViewById(R.id.toggle_bluetooth);
         mBluetoothToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
@@ -94,9 +110,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         mWiFiScan = (ToggleButton) findViewById(R.id.button_wifi_scan);
         mWiFiScan.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			@Override
-			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-				// TODO Auto-generated method stub
-				
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {				
 				if (mWiFiScan.isChecked()) {
 					Intent service = new Intent(ForschungsprojektAppActivity.this, WiFiService.class);
 					bindService(service, mWiFiConnection, Context.BIND_AUTO_CREATE);
@@ -106,6 +120,23 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 					isWiFiServiceBound = false;
 					mFoundObjectsFromWifi.clear();
 				}
+			}
+		});
+        
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mLight = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        
+        mLightSensorButton = (ToggleButton) findViewById(R.id.button_light_sensor);
+        mLightSensorButton.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				if (mLightSensorButton.isChecked()) {
+					mSensorManager.registerListener(ForschungsprojektAppActivity.this, mLight, SensorManager.SENSOR_DELAY_UI);
+				} else {
+					mSensorManager.unregisterListener(ForschungsprojektAppActivity.this);
+				}
+				
 			}
 		});
         
@@ -417,5 +448,37 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		}
 		
 		return set;
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		if (Sensor.TYPE_LIGHT == event.sensor.getType()) {
+			Log.d(LOG_TAG, "light value: " + event.values[0]);
+			
+	        mCurrentTime.setToNow();
+	        int daytime = mCurrentTime.hour;
+	        Log.d(LOG_TAG, "hour: "+mCurrentTime.hour);
+	        Log.d(LOG_TAG, "estimated light value at Window: " + LightTracker.getEstimatedLightValueWindowForDayTime(daytime));
+	        Log.d(LOG_TAG, "estimated light value at Wall: " + LightTracker.getEstimatedLightValueWallForDayTime(daytime));
+		}
+		
+	}
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+	}
+	
+	@Override
+	protected void onPause() {
+		mSensorManager.unregisterListener(ForschungsprojektAppActivity.this);
+		super.onPause();
 	}
 }

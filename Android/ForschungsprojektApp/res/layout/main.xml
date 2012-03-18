@@ -17,7 +17,7 @@
         <TextView
         	android:id="@+id/text_info"
         	android:layout_width="wrap_content"
-        	android:layout_height="100dip"
+        	android:layout_height="wrap_content"
         	android:text="Bluetooth" />
         
         <ToggleButton 
@@ -43,6 +43,23 @@
 	   	    android:layout_width="wrap_content"
 	   	    android:layout_height="wrap_content"
 	   	    android:text="WiFi Scan"/>
+        
+    </LinearLayout>
+    
+    <LinearLayout 
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        
+	    <TextView
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="Light Sensor" />
+	    
+	   	<ToggleButton 
+	   	    android:id="@+id/button_light_sensor"
+	   	    android:layout_width="wrap_content"
+	   	    android:layout_height="wrap_content"/>
         
     </LinearLayout>
 
