@@ -14,6 +14,7 @@ public class Object {
 
 	private long id;
 	private String object_name;
+	private int light_value;
 	
 	public long getId() {
 		return id;
@@ -30,6 +31,15 @@ public class Object {
 	public void setObjectName(String object_name) {
 		this.object_name = object_name;
 	}
+	
+	public int getLightValue() {
+		return light_value;
+	}
+	
+	public void setLightValue(int light_value) {
+		this.light_value = light_value;
+	}
+	
 	
 	@Override
 	public String toString() {
@@ -58,6 +68,7 @@ public class Object {
 		
 		result = 31 * result + (int) (id ^(id >>> 32));
 		result = 31 * result + object_name.hashCode();
+		result = 31 * result + (int) (light_value ^(light_value>>> 32));
 		
 		return result;
 	}

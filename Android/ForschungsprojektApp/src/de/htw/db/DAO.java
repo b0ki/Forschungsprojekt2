@@ -16,7 +16,7 @@ public class DAO{
 	
 	private SQLiteDatabase database;
 	private MySQLiteHelper dbHelper;
-	private String[] allObjectColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJECT_NAME};
+	private String[] allObjectColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJECT_NAME, MySQLiteHelper.COLUMN_OBJECT_LIGHT};
 	private String[] allBluetoothColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_BLUETOOTH_NAME, MySQLiteHelper.COLUMN_BLUETOOTH_ADDRESS};
 	private String[] allWifiColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_WIFI_SSID, MySQLiteHelper.COLUMN_WIFI_BSSID};
 	private String[] allObj_BtColumns = {MySQLiteHelper.COLUMN_ID, MySQLiteHelper.COLUMN_OBJ_FK, MySQLiteHelper.COLUMN_BT_FK};
@@ -194,9 +194,10 @@ public class DAO{
 		return bluetooths;
 	}
 
-	public Object createObject(String object_name) {
+	public Object createObject(String object_name, int light_value) {
 		ContentValues values = new ContentValues();
 		values.put(MySQLiteHelper.COLUMN_OBJECT_NAME, object_name);
+		values.put(MySQLiteHelper.COLUMN_OBJECT_LIGHT, light_value);
 		long insertId = database.insert(MySQLiteHelper.TABLE_OBJECTS, null, values);
 		
 		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJECTS, allObjectColumns, MySQLiteHelper.COLUMN_ID + " = " + insertId, null, null, null, null);
@@ -204,6 +205,33 @@ public class DAO{
 		Object object= cursorToObject(cursor);
 		cursor.close();
 		return object;
+	}
+	
+	/**
+	 * Gibt alle Objekte zu einem bestimmten Lichtwert zurück.
+	 *
+	 * @param light_value
+	 * @return
+	 */
+	public List<Object> getObjectsWithLight(int light_value) {
+		List<Object> objects = new ArrayList<Object>();
+		int threshold = 300;
+		int min = light_value - threshold;
+		if (min < 0) {
+			min = 0;
+		}
+		int max = light_value + threshold;
+		Cursor cursor = database.query(MySQLiteHelper.TABLE_OBJECTS, allObjectColumns, MySQLiteHelper.COLUMN_OBJECT_LIGHT + " > " + min + " and "+ MySQLiteHelper.COLUMN_OBJECT_LIGHT + " < " + max, null, null, null, null);
+		cursor.moveToFirst();
+		while (!cursor.isAfterLast()) {
+			Object object = cursorToObject(cursor);
+			//if (object.getLightValue() == light_value) {
+				objects.add(object);				
+			//}
+			cursor.moveToNext();
+		}
+		cursor.close();
+		return objects;
 	}
 
 	private Object cursorToObject(Cursor cursor) {

@@ -12,12 +12,13 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 	
 	// Allgemeine Datenbank Attribute
 	private static final String DATABASE_NAME = "objects.db";
-	private static final int DATABASE_VERSION = 3;
+	private static final int DATABASE_VERSION = 4;
 	
 	// Tabellen Infos
 	public static final String TABLE_OBJECTS = "objects";			// Name der Tabelle "object"
 	public static final String COLUMN_ID = "_id";					// Spalte ID
 	public static final String COLUMN_OBJECT_NAME = "object_name";	// Spalte Objektname
+	public static final String COLUMN_OBJECT_LIGHT = "light_value"; // Spalte Light Value
 	
 	public static final String TABLE_BLUETOOTH = "bluetooth_networks";		// Name der Tabelle Bluetooth
 	public static final String COLUMN_BLUETOOTH_NAME = "bluetooth_name"; // Spalte mit Name des Bluetoothgeräts
@@ -39,7 +40,8 @@ public class MySQLiteHelper extends SQLiteOpenHelper {
 	private static final String CREATE_OBJECT_TABLE = "create table "
 			+ TABLE_OBJECTS + "( " + COLUMN_ID
 			+ " integer primary key autoincrement, " + COLUMN_OBJECT_NAME
-			+ " text not null);";
+			+ " text not null, " + COLUMN_OBJECT_LIGHT
+			+ " integer not null);";
 	
 	private static final String CREATE_BLUETOOTH_TABLE = "create table "
 			+ TABLE_BLUETOOTH + "( " + COLUMN_ID

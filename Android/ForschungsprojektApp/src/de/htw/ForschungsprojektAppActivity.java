@@ -8,6 +8,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.http.impl.conn.Wire;
+
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
@@ -23,9 +25,12 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.text.format.Time;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 import de.htw.bluetooth.BluetoothInterface;
 import de.htw.bluetooth.BluetoothService;
@@ -37,19 +42,23 @@ import de.htw.db.Obj_Bt_Relation;
 import de.htw.db.Obj_Wifi_Relation;
 import de.htw.db.Object;
 import de.htw.db.WiFi;
+import de.htw.light.LightInterface;
+import de.htw.light.LightService;
+import de.htw.light.LightService.LocalLightBinder;
 import de.htw.light.LightTracker;
 import de.htw.wifi.WiFiComparator;
 import de.htw.wifi.WiFiInterface;
 import de.htw.wifi.WiFiService;
 import de.htw.wifi.WiFiService.LocalWiFiBinder;
 
-public class ForschungsprojektAppActivity extends Activity implements BluetoothInterface, WiFiInterface, SensorEventListener {
+public class ForschungsprojektAppActivity extends Activity implements BluetoothInterface, WiFiInterface, SensorEventListener, LightInterface {
 
 	private static final String LOG_TAG = "ForschungsprojektAppActivity";
 	
 	private ToggleButton mBluetoothToggle;
 	
 	// Service State
+	private LightService mLightService;
 	private BluetoothService mBluetoothService;
 	private WiFiService mWiFiService;
     private boolean isBluetoothServiceBound;
@@ -77,6 +86,13 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	private Sensor mLight;
 
 	private Time mCurrentTime;
+
+	private TextView mTextObjectList;
+	
+	private boolean isLightServiceBound;
+	
+	public final static String SETUP_DB = "Setup DB";
+	public final static String DELETE_DB = "Delete DB";
     
 	/** Called when the activity is first created. */
     @Override
@@ -84,7 +100,10 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         
+        mTextObjectList = (TextView) findViewById(R.id.text_object_list);
+        
         mCurrentTime = new Time();
+        mCurrentWirelessObjects = new HashSet<Object>();
         
         mBluetoothToggle = (ToggleButton) findViewById(R.id.toggle_bluetooth);
         mBluetoothToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
@@ -99,9 +118,13 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 			    	unbindService(mBluetoothConnection);
 			    	isBluetoothServiceBound = false;
 			    	mFoundObjectsFromBluetooth.clear();
+			    	conjuntWirelessObjects();
+			    	printCurrentObjects();
 				}
 				
 			}
+
+			
 		});
         
         setupBluetooth();
@@ -119,6 +142,8 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 					unbindService(mWiFiConnection);
 					isWiFiServiceBound = false;
 					mFoundObjectsFromWifi.clear();
+			    	conjuntWirelessObjects();
+			    	printCurrentObjects();
 				}
 			}
 		});
@@ -129,12 +154,26 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         mLightSensorButton = (ToggleButton) findViewById(R.id.button_light_sensor);
         mLightSensorButton.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 			
+			
+
 			@Override
 			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 				if (mLightSensorButton.isChecked()) {
-					mSensorManager.registerListener(ForschungsprojektAppActivity.this, mLight, SensorManager.SENSOR_DELAY_UI);
+					// Der Lichtsensor arbeitet nur wenn ein Wireless Service läuft.
+					if (isBluetoothServiceBound || isWiFiServiceBound) {
+						//mSensorManager.registerListener(ForschungsprojektAppActivity.this, mLight, SensorManager.SENSOR_DELAY_UI);
+						Intent service = new Intent(ForschungsprojektAppActivity.this, LightService.class);
+						Log.d(LOG_TAG, "try to bind Service");
+						bindService(service, mLightConnection, Context.BIND_AUTO_CREATE);
+						isLightServiceBound = true;
+					} else {
+						mLightSensorButton.setChecked(false);
+						Toast.makeText(ForschungsprojektAppActivity.this, "Need Wireless Service", Toast.LENGTH_SHORT).show();
+					}
 				} else {
-					mSensorManager.unregisterListener(ForschungsprojektAppActivity.this);
+					//mSensorManager.unregisterListener(ForschungsprojektAppActivity.this);
+					unbindService(mLightConnection);
+					isLightServiceBound = false;
 				}
 				
 			}
@@ -195,11 +234,33 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         mFoundObjectsFromWifi = new ArrayList<Object>();
     }
     
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+    	menu.add(SETUP_DB);
+    	menu.add(DELETE_DB);
+    	
+    	return super.onCreateOptionsMenu(menu);
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+    	Log.d(LOG_TAG, "press item: "+item.getTitle());
+    	if (item.getTitle().toString().equals(SETUP_DB)) {
+    		setupDB();
+    	}
+    	
+    	if (item.getTitle().toString().equals(DELETE_DB)) {
+    		destroyDB();
+    	}
+    	
+    	return super.onOptionsItemSelected(item);
+    }
+    
     private void setupDB() {
-    	Object o1 = dao.createObject("Trinkflasche");
-    	Object o2 = dao.createObject("Buch");
-    	Object o3 = dao.createObject("Uhr");
-    	Object o4 = dao.createObject("Kugelschreiber");
+    	Object o1 = dao.createObject("Trinkflasche", 10); // im sehr dunkel
+    	Object o2 = dao.createObject("Buch", 320);		// im hellen
+    	Object o3 = dao.createObject("Uhr", 1024);		// am Fenster
+    	Object o4 = dao.createObject("Kugelschreiber", 512);
     	Bluetooth b1 = dao.createBluetooth("INKAMACBOOK", "00:26:08:CB:F4:43");
     	WiFi w1 = dao.createWifi("INKAMACBOOK", "00:26:bb:0e:95:83");
     	dao.createObj_Bt_Relation(o1.getId(), b1.getId());
@@ -256,6 +317,7 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         		Intent service = new Intent(ForschungsprojektAppActivity.this, BluetoothService.class);
         		bindService(service, mBluetoothConnection, Context.BIND_AUTO_CREATE);        
         		isBluetoothServiceBound = true;
+        		
         	}
         }
     }
@@ -304,16 +366,24 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		mFoundObjectsFromBluetooth = collectObjectsFromBluetooth(mCurrentBluetoothDevices);
 		//printFoundObjects(mFoundObjectsFromBluetooth, "Bluetooth");
 		
-		printObjects(conjuntObjects(), "Bluetooth");
+		conjuntWirelessObjects();
+		
+		if (isLightServiceBound) {
+			conjunctLightObjects();
+		}
+		
+		printCurrentObjects();
+		
+		//printObjects(conjuntWirelessObjects(), "Bluetooth");
 	}
 	
-	private void printFoundObjects(List<Object> objects, String source) {
+	/*private void printFoundObjects(List<Object> objects, String source) {
 		Log.d(LOG_TAG, "Found Objects after "+source+" scan: "+ objects.size());
         
         for (Object o: objects) {
         	Log.d(LOG_TAG, "ID: " + o.getId() + ", Name: " + o.getObjectName());
         }
-	}
+	}*/
 
 	/**
 	 * Collect object given a list of remote devices.
@@ -346,6 +416,38 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		
 		return objects;
 	}
+	
+	private List<Object> collectObjectsFromLight(int light_value) {
+		List<Object> objects = new ArrayList<Object>();
+		
+		Log.d(LOG_TAG, "get objects with given light from db: " + light_value);
+		objects = dao.getObjectsWithLight(light_value);
+		
+		Log.d(LOG_TAG, "size: "+objects.size());
+		
+		return objects;
+	}
+	
+	private ServiceConnection mLightConnection = new ServiceConnection() {
+
+		@Override
+		public void onServiceConnected(ComponentName arg0, IBinder service) {
+			Log.d(LOG_TAG, "connect to Light service");
+			
+			LocalLightBinder binder = (LocalLightBinder) service;
+			mLightService = binder.getService();
+			mLightService.registerCallback(ForschungsprojektAppActivity.this);
+			//mLightService.setSleepInterval(10000);
+			
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName arg0) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	};
 
 	/** Defines callbacks for service binding, passed to bindService() */
     private ServiceConnection mBluetoothConnection = new ServiceConnection() {
@@ -390,6 +492,14 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
     };
 
 	private List<Object> mFoundObjectsFromWifi;
+
+	private long mLastUpdate;
+
+	private Set<Object> mCurrentWirelessObjects;
+
+	private Set<Object> mCurrentLightObjects;
+
+	private Set<Object> mCurrentObjects;
     
     
     @Override
@@ -426,26 +536,37 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		mFoundObjectsFromWifi = collectObjectsFromWifi(mCurrentWiFiDevices);
 		//printFoundObjects(mFoundObjectsFromWifi, "Wifi");
 		
-		printObjects(conjuntObjects(), "WiFi");
+		conjuntWirelessObjects();
+		if (isLightServiceBound) {
+			conjunctLightObjects();
+		}
+		printCurrentObjects();
+		
+		//printObjects(conjuntWirelessObjects(), "WiFi");
 	}
 	
 	private void printObjects(Set<Object> conjuntObjects, String source) {
-		Log.d(LOG_TAG, "Found Objects after scan update ("+source+") : "+ conjuntObjects.size());
-		for (Object o : conjuntObjects) {
-			Log.d(LOG_TAG, "ID: " + o.getId() + ", Name: " + o.getObjectName());
-		}
+		
+		
 		
 	}
 
-	private Set<Object> conjuntObjects() {
+	private Set<Object> conjuntWirelessObjects() {
 		Log.d(LOG_TAG, "call conjuntObjects()");
 		Set<Object> set = new HashSet<Object>();
+		
+		// Füge die letzten Bluetooth gefundenen Objekte hinzu
 		for (Object o : mFoundObjectsFromBluetooth) {
 			set.add(o);
 		}
+		
+		// Füge die letzten WiFi gefundenen Objekte hinzu
 		for (Object o : mFoundObjectsFromWifi) {
 			set.add(o);
 		}
+		
+		mCurrentWirelessObjects = set;
+		mCurrentObjects = set;
 		
 		return set;
 	}
@@ -480,5 +601,61 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	protected void onPause() {
 		mSensorManager.unregisterListener(ForschungsprojektAppActivity.this);
 		super.onPause();
+	}
+
+	@Override
+	public void onScannedLight(int light_value) {
+		Log.d(LOG_TAG, "light value (lux): " + light_value);
+		
+		List<Object> objects = collectObjectsFromLight(light_value);
+		Set<Object> object_set = new HashSet<Object>();
+		
+		for (Object o : objects) {
+			object_set.add(o);
+		}
+		
+		mCurrentLightObjects = object_set;
+		Log.d(LOG_TAG, "size light objects: "+mCurrentLightObjects.size());
+		//conjuntObjects(object_set);
+		conjunctLightObjects();
+		printCurrentObjects();
+		
+	}
+	
+	private void conjunctLightObjects() {
+		Set<Object> conjunct_objects = new HashSet<Object>();
+		
+		if (mCurrentLightObjects.size() == 0) {
+			mCurrentObjects = mCurrentWirelessObjects;
+		} else {
+			// Nur die Schnittmenge nehmen
+			for (Object o : mCurrentLightObjects) {
+				if (mCurrentWirelessObjects.contains(o)) {
+					conjunct_objects.add(o);
+				}
+			}
+			
+			mCurrentObjects = conjunct_objects;			
+		}
+	}
+
+	private void printCurrentObjects() {
+		
+		if (mCurrentObjects.size() == 0) {
+			Log.d(LOG_TAG, "No Objects!");
+			mTextObjectList.setText("No Objects!");
+			return;
+		}
+		
+		StringBuffer buf = new StringBuffer();
+		for (Object o : mCurrentObjects) {
+			Log.d(LOG_TAG, "ID: " + o.getId() + ", Name: " + o.getObjectName());
+			buf.append(o.getId() + " " + o.getObjectName()+"\n");
+		}
+		buf.append("Last update: " + (System.currentTimeMillis() - mLastUpdate)/1000 + " sec");
+		
+		mLastUpdate = System.currentTimeMillis();
+		mTextObjectList.setText(buf.toString());
+		
 	}
 }
