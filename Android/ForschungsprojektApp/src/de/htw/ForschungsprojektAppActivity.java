@@ -103,7 +103,9 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
         mTextObjectList = (TextView) findViewById(R.id.text_object_list);
         
         mCurrentTime = new Time();
-        mCurrentWirelessObjects = new HashSet<Object>();
+        //mCurrentWirelessObjects = new HashSet<Object>();
+        mCurrentWirelessObjects = new ArrayList<Object>();
+        mCurrentLightObjects = new ArrayList<Object>();
         
         mBluetoothToggle = (ToggleButton) findViewById(R.id.toggle_bluetooth);
         mBluetoothToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
@@ -174,6 +176,8 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 					//mSensorManager.unregisterListener(ForschungsprojektAppActivity.this);
 					unbindService(mLightConnection);
 					isLightServiceBound = false;
+					conjuntWirelessObjects();
+					printCurrentObjects();
 				}
 				
 			}
@@ -261,13 +265,16 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
     	Object o2 = dao.createObject("Buch", 320);		// im hellen
     	Object o3 = dao.createObject("Uhr", 1024);		// am Fenster
     	Object o4 = dao.createObject("Kugelschreiber", 512);
+    	Object o5 = dao.createObject("MacBook", 620); // Mein MacBook
     	Bluetooth b1 = dao.createBluetooth("INKAMACBOOK", "00:26:08:CB:F4:43");
+    	Bluetooth b2 = dao.createBluetooth("Christians_MacBook", "00:25:00:60:A8:C6");
     	WiFi w1 = dao.createWifi("INKAMACBOOK", "00:26:bb:0e:95:83");
     	dao.createObj_Bt_Relation(o1.getId(), b1.getId());
     	dao.createObj_Bt_Relation(o2.getId(), b1.getId());
     	dao.createObj_Wifi_Relation(o3.getId(), w1.getId());
     	dao.createObj_Bt_Relation(o4.getId(), b1.getId());
     	dao.createObj_Wifi_Relation(o4.getId(), w1.getId());
+    	dao.createObj_Bt_Relation(o5.getId(), b2.getId());
     }
     
     private void destroyDB() {
@@ -351,13 +358,13 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		// sortiere Liste
 		Collections.sort(devices);
 		
-		/*StringBuffer buf = new StringBuffer();
+		//StringBuffer buf = new StringBuffer();
 		for (RemoteBluetoothDevice device : devices) {
     		Log.d(LOG_TAG, "Address: "+ device.getAddress() + " | RSSI: " + device.getRSSI() + " | Name: " + device.getName());
     		//if (device.getAddress().equalsIgnoreCase("44:2A:60:DA:61:44")) {
-    			buf.append(device.getName() + " | " + device.getAddress() + " | " + device.getRSSI()+ "\n");    			
+    			//buf.append(device.getName() + " | " + device.getAddress() + " | " + device.getRSSI()+ "\n");    			
     		//}
-    	}*/
+    	}
 		
 		mCurrentBluetoothDevices = devices;
 		//mBluetoothQuerries.setText(buf.toString());
@@ -391,11 +398,18 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	 * @return
 	 */
 	private List<Object> collectObjectsFromBluetooth(List<RemoteBluetoothDevice> remoteBluetoothDevices) {
+		Log.d(LOG_TAG, "collect Objects for Bluetooth...");
 		List<Object> objects = new ArrayList<Object>();
 		
 		for (RemoteBluetoothDevice bt : remoteBluetoothDevices) {
+			Log.d(LOG_TAG, "for bluetooth device: "+bt.getAddress()); 
 			List<Object> found_objects = dao.getObjectsWithBluetooth(dao.getBluetoothByAddress(bt.getAddress()));
 			objects.addAll(found_objects);
+		}
+		
+		Log.d(LOG_TAG, "collected objects:");
+		for (Object o : objects) {
+			Log.d(LOG_TAG, o.getObjectName());
 		}
 		
 		return objects;
@@ -495,11 +509,13 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 
 	private long mLastUpdate;
 
-	private Set<Object> mCurrentWirelessObjects;
+	private List<Object> mCurrentWirelessObjects;
 
-	private Set<Object> mCurrentLightObjects;
+	private List<Object> mCurrentLightObjects;
 
-	private Set<Object> mCurrentObjects;
+	private List<Object> mCurrentObjects;
+
+	private int mLastLightValue;
     
     
     @Override
@@ -524,13 +540,13 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		//Log.d(LOG_TAG, "WiFi Networks:");
 		Collections.sort(results, new WiFiComparator());
 		
-		/*
-		StringBuffer buf = new StringBuffer();
+		
+		//StringBuffer buf = new StringBuffer();
 		for (ScanResult result : results) {
 			Log.d(LOG_TAG, "BSSID: " + result.BSSID + " | Signal-Strength: "+ result.level + " | SSID: " + result.SSID);
-			buf.append(result.SSID + " | " + result.BSSID + " | " + result.level + "\n");
+			//buf.append(result.SSID + " | " + result.BSSID + " | " + result.level + "\n");
 		}
-		*/
+		
 		
 		mCurrentWiFiDevices = results;
 		mFoundObjectsFromWifi = collectObjectsFromWifi(mCurrentWiFiDevices);
@@ -544,31 +560,50 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		
 		//printObjects(conjuntWirelessObjects(), "WiFi");
 	}
-	
-	private void printObjects(Set<Object> conjuntObjects, String source) {
-		
-		
-		
-	}
 
-	private Set<Object> conjuntWirelessObjects() {
-		Log.d(LOG_TAG, "call conjuntObjects()");
-		Set<Object> set = new HashSet<Object>();
+	/**
+	 * Wird aufgerufen wenn sich entweder Wifi oder Bluetooth geändert hat
+	 * @return
+	 */
+	private List<Object> conjuntWirelessObjects() {
+		Log.d(LOG_TAG, "call conjuntWirelessObjects()");
+		//Set<Object> set = new HashSet<Object>();
+		List<Object> objects = new ArrayList<Object>();
 		
 		// Füge die letzten Bluetooth gefundenen Objekte hinzu
 		for (Object o : mFoundObjectsFromBluetooth) {
-			set.add(o);
+			//set.add(o);
+			if (!objects.contains(o)) {
+				objects.add(o);
+			}
 		}
 		
 		// Füge die letzten WiFi gefundenen Objekte hinzu
 		for (Object o : mFoundObjectsFromWifi) {
-			set.add(o);
+			//set.add(o);
+			if (!objects.contains(o)) {
+				objects.add(o);
+			}
 		}
+
+		mCurrentWirelessObjects = objects;
+		mCurrentObjects = objects;
+		/*
+		if (mCurrentLightObjects.size() > 0) {
+			objects.clear();
+			// Nur die Schnittmenge nehmen
+			for (Object o : mCurrentLightObjects) {
+				if (mCurrentWirelessObjects.contains(o)) {
+					objects.add(o);
+				}
+			}
+			
+			mCurrentObjects = objects;
+		}*/
 		
-		mCurrentWirelessObjects = set;
-		mCurrentObjects = set;
 		
-		return set;
+		
+		return objects;
 	}
 
 	@Override
@@ -606,15 +641,19 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 	@Override
 	public void onScannedLight(int light_value) {
 		Log.d(LOG_TAG, "light value (lux): " + light_value);
+		mLastLightValue = light_value;
 		
-		List<Object> objects = collectObjectsFromLight(light_value);
-		Set<Object> object_set = new HashSet<Object>();
 		
-		for (Object o : objects) {
+		// Hole Objekte anhand des letzten Lichtwertes
+		mCurrentLightObjects = collectObjectsFromLight(mLastLightValue);
+		
+		//Set<Object> object_set = new HashSet<Object>();
+		
+		/*for (Object o : objects) {
 			object_set.add(o);
-		}
+		}*/
 		
-		mCurrentLightObjects = object_set;
+		//mCurrentLightObjects = objects;
 		Log.d(LOG_TAG, "size light objects: "+mCurrentLightObjects.size());
 		//conjuntObjects(object_set);
 		conjunctLightObjects();
@@ -622,20 +661,25 @@ public class ForschungsprojektAppActivity extends Activity implements BluetoothI
 		
 	}
 	
+	/**
+	 * Wird aufgerufen wenn sich der Lichtwert geändert hat.
+	 */
 	private void conjunctLightObjects() {
-		Set<Object> conjunct_objects = new HashSet<Object>();
+		//Set<Object> conjunct_objects = new HashSet<Object>();
+		
+		List<Object> objects = new ArrayList<Object>();
 		
 		if (mCurrentLightObjects.size() == 0) {
-			mCurrentObjects = mCurrentWirelessObjects;
+			mCurrentObjects = mCurrentLightObjects;
 		} else {
 			// Nur die Schnittmenge nehmen
 			for (Object o : mCurrentLightObjects) {
 				if (mCurrentWirelessObjects.contains(o)) {
-					conjunct_objects.add(o);
+					objects.add(o);
 				}
 			}
 			
-			mCurrentObjects = conjunct_objects;			
+			mCurrentObjects = objects;			
 		}
 	}
 
