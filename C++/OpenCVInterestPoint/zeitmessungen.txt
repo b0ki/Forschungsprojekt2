@@ -1,0 +1,6 @@
+Zeit für das Berechnen der 4368 Keypoints (SURF) : 0.40
+Zeit für das Berechnen der Descriptoren (SURF) : 0.76
+
+Laden der Datei mit Descriptoren (SURF) : 0.13
+
+Zeit für das Berechnen der Matches (BruteForce) : 0.0004

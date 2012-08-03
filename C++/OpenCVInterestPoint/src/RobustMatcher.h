@@ -9,6 +9,7 @@
 #define ROBUSTMATCHER_H_
 
 #include <cv.h>
+#include "Helper.h"
 
 class RobustMatcher {
 private:
@@ -22,6 +23,8 @@ private:
 	bool refineF; // if true will refine the F matrix
 	double distance; // min distance to epipolar
 	double confidence; // confidence level (probability)
+
+	Helper* helper;
 
 public:
 	RobustMatcher();

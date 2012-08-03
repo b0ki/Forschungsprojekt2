@@ -4,14 +4,20 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/Helper.cpp \
+../src/ImageMatch.cpp \
 ../src/RobustMatcher.cpp \
 ../src/main.cpp 
 
 OBJS += \
+./src/Helper.o \
+./src/ImageMatch.o \
 ./src/RobustMatcher.o \
 ./src/main.o 
 
 CPP_DEPS += \
+./src/Helper.d \
+./src/ImageMatch.d \
 ./src/RobustMatcher.d \
 ./src/main.d 
 
